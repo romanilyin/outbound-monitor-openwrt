@@ -26,6 +26,8 @@ with connect(args.env) as client:
     raise SystemExit(run(client, 'sh -s', '''set -eu
 cd /tmp/outbound-monitor-check
 ucode tests/core.uc
+ucode tests/podkop.uc
+ucode tests/runtime.uc
 ucode tests/update.uc
 ucode tests/network.uc
 ucode -c -o /tmp/outbound-monitor-check/main.ucb outbound-monitor/files/usr/share/outbound-monitor/main.uc

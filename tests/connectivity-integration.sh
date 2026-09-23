@@ -7,11 +7,13 @@ mkdir -p "$BOX/bin"
 chmod 700 "$BOX"
 cp "$ROOT/outbound-monitor/files/usr/share/outbound-monitor/core.uc" "$BOX/core.uc"
 cp "$ROOT/outbound-monitor/files/usr/share/outbound-monitor/network.uc" "$BOX/network.uc"
+cp "$ROOT/outbound-monitor/files/usr/share/outbound-monitor/podkop.uc" "$BOX/podkop.uc"
+cp "$ROOT/outbound-monitor/files/usr/share/outbound-monitor/runtime.uc" "$BOX/runtime.uc"
 sed -e "s|const DIR = .*|const DIR = '$BOX';|" \
  -e "s|config: c.sing_box_config .*|config: '$BOX/config.json'|" \
  -e "s|dns_check: c.dns_check .*|dns_check: false,|" \
  -e "s|function generation() {|function generation() { return 'mock-process';|" \
- -e "s|function podkop_links() {|function podkop_links() { return {};|" \
+ -e "s|function podkop_targets() {|function podkop_targets() { return {links:{},interfaces:{}};|" \
  "$ROOT/outbound-monitor/files/usr/share/outbound-monitor/main.uc" > "$BOX/main.uc"
 cat > "$BOX/config.json" <<'EOF'
 {"experimental":{"clash_api":{"external_controller":"127.0.0.1:9"}},"outbounds":[{"tag":"group","type":"urltest","outbounds":["one","two"]},{"tag":"one","type":"vless","uuid":"fake-one"},{"tag":"two","type":"vless","uuid":"fake-two"},{"tag":"direct-out","type":"direct"}]}

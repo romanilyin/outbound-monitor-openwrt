@@ -28,7 +28,7 @@ else
 	WEB=$ROOT/luci-app-outbound-monitor/htdocs
 fi
 # Validate the complete payload before stopping an existing monitor instance.
-for path in usr/bin/outbound-monitor usr/bin/outbound-monitor-update usr/share/outbound-monitor/core.uc usr/share/outbound-monitor/network.uc usr/share/outbound-monitor/main.uc usr/share/outbound-monitor/update.uc usr/share/outbound-monitor/update-core.uc etc/init.d/outbound-monitor etc/config/outbound-monitor; do
+for path in usr/bin/outbound-monitor usr/bin/outbound-monitor-update usr/share/outbound-monitor/core.uc usr/share/outbound-monitor/network.uc usr/share/outbound-monitor/podkop.uc usr/share/outbound-monitor/runtime.uc usr/share/outbound-monitor/main.uc usr/share/outbound-monitor/update.uc usr/share/outbound-monitor/update-core.uc etc/init.d/outbound-monitor etc/config/outbound-monitor; do
 	[ -f "$BACKEND/$path" ] || { echo "Missing payload: $path" >&2; exit 1; }
 done
 for path in usr/share/rpcd/ucode/outbound-monitor.uc usr/share/rpcd/acl.d/luci-app-outbound-monitor.json usr/share/luci/menu.d/luci-app-outbound-monitor.json; do
@@ -63,7 +63,7 @@ copy_file() {
 copy_file "$BACKEND/usr/bin/outbound-monitor" /usr/bin/outbound-monitor 755
 copy_file "$BACKEND/usr/bin/outbound-monitor-update" /usr/bin/outbound-monitor-update 755
 copy_file "$BACKEND/etc/init.d/outbound-monitor" /etc/init.d/outbound-monitor 755
-for file in core.uc main.uc network.uc update.uc update-core.uc; do
+for file in core.uc main.uc network.uc podkop.uc runtime.uc update.uc update-core.uc; do
 	copy_file "$BACKEND/usr/share/outbound-monitor/$file" "/usr/share/outbound-monitor/$file" 644
 done
 if [ -d "$ROOT/files" ]; then

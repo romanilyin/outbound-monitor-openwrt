@@ -3,7 +3,9 @@
 import * as fs from 'fs';
 import { cursor } from 'uci';
 import { sha256 } from 'digest';
-import { discover, bind_keys, record, trim_history, classify, encode_path, canonical, config_loaded, vpn_link_hash } from './core.uc';
+import { discover, bind_keys, record, trim_history, classify, encode_path, canonical, config_loaded } from './core.uc';
+import { section_targets } from './podkop.uc';
+import { process_generation } from './runtime.uc';
 
 import { diagnosis, dns_check } from './network.uc';
 
@@ -32,27 +34,14 @@ function settings() {
 }
 function quote(v) { return "'" + replace('' + v, "'", "'\"'\"'") + "'"; }
 function generation() {
-	let found = [];
-	for (let path in fs.glob('/proc/[0-9]*/comm')) {
-		if (trim(fs.readfile(path) || '') != 'sing-box') continue;
-		let stat = fs.readfile(replace(path, /comm$/, 'stat')) || '';
-		let end = index(stat, ') ');
-		if (end >= 0) push(found, path + ':' + split(substr(stat, end + 2), ' ')[19]);
-	}
-	return length(found) == 1 ? found[0] : null;
+	return process_generation();
 }
 function fingerprint(config) { return sha256(canonical(config?.outbounds || [])); }
-function podkop_links() {
-	let links = {};
+function podkop_targets() {
+	let sections = [];
 	let u = cursor();
-	u.foreach('podkop', 'section', function(section) {
-		if (section.proxy_config_type != 'urltest' || type(section.urltest_proxy_links) != 'array') return;
-		for (let i = 0; i < length(section.urltest_proxy_links); i++) {
-			let hash = vpn_link_hash(section.urltest_proxy_links[i]);
-			if (hash) links[section['.name'] + '-' + (i + 1) + '-out'] = hash;
-		}
-	});
-	return links;
+	u.foreach('podkop', 'section', (section) => push(sections, section));
+	return section_targets(sections);
 }
 function direct_outbound(config) {
 	// Explicit inherited routing may direct the control through a tunnel.
@@ -101,10 +90,15 @@ function collect(c) {
 	let valid_config = type(config?.outbounds) == 'array';
 	let runtime = generation();
 	let config_hash = fingerprint(config);
-	let linkmap = podkop_links();
-	let link_fingerprint = sha256(canonical(linkmap));
-	let loaded = valid_config && config_loaded(state._runtime, runtime, config_hash, link_fingerprint);
-	let current = loaded ? discover(config, linkmap) : [];
+	let targets = podkop_targets();
+	let link_fingerprint = sha256(canonical(targets));
+	let previous_runtime = state._runtime;
+	// Discovery v2 includes standalone links and interface sections. Adopt its
+	// metadata baseline once on upgrade, while still requiring unchanged JSON.
+	if (previous_runtime && previous_runtime.discovery_version != 2)
+		previous_runtime = {generation: previous_runtime.generation, fingerprint: previous_runtime.fingerprint};
+	let loaded = valid_config && config_loaded(previous_runtime, runtime, config_hash, link_fingerprint);
+	let current = loaded ? discover(config, targets.links, targets.interfaces) : [];
 	if (length(current) > 32) {
 		current = slice(current, 0, 32);
 		state.collector_error = 'Monitoring is limited to 32 keys';
@@ -163,14 +157,18 @@ function collect(c) {
 	for (let p in probes)
 		record(p.key, p.timestamp, connectivity.common_failure ? -2 : p.status, p.delay, c.interval);
 	state.updated_at = time();
-	if (runtime != generation() || config_hash != fingerprint(read_json(c.config)) ||
-		link_fingerprint != sha256(canonical(podkop_links()))) {
+	let after_runtime = generation();
+	let changed = runtime != after_runtime ? (after_runtime ? 'Running sing-box process changed during collection; measurements discarded' :
+		'A unique sing-box server could not be identified after collection; measurements discarded') :
+		config_hash != fingerprint(read_json(c.config)) ? 'sing-box configuration changed during collection; measurements discarded' :
+		link_fingerprint != sha256(canonical(podkop_targets())) ? 'Podkop connection settings changed during collection; measurements discarded' : null;
+	if (changed) {
 		state.keys = before;
 		for (let k in state.keys) if (k.active) record(k, state.updated_at, -1, null, c.interval);
-		state.collector_error = 'sing-box changed during collection; measurements discarded';
+		if (ready) state.collector_error = changed;
 		state.connectivity = diagnosis([], [], state.updated_at);
 	} else {
-		if (loaded) state._runtime = {generation: runtime, fingerprint: config_hash, link_fingerprint};
+		if (loaded) state._runtime = {generation: runtime, fingerprint: config_hash, link_fingerprint, discovery_version: 2};
 		state.connectivity = connectivity;
 		if (dns && (dns.checked_at != null || state.dns?.checked_at == null)) state.dns = dns;
 		if (connectivity.both_controls_failed) {

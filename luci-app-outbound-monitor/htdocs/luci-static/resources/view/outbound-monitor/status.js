@@ -113,6 +113,7 @@ function renderComparison(data, now, hours, unavailable) {
 			E('th', { scope: 'row', 'class': 'om-comparison-key' }, [
 				E('strong', {}, key.label || key.tag || _('Unnamed')),
 				key.label && key.tag && key.label !== key.tag ? E('small', { 'class': 'om-muted' }, key.tag) : '',
+				key.interface ? E('small', { 'class': 'om-muted' }, _('Interface: %s').format(key.interface)) : '',
 				E('span', { 'class': 'om-badge om-' + row.state.kind, title: _('Last probe: %s').format(dateTime(key.last_checked)) }, row.state.label),
 				E('small', { 'class': 'om-muted' }, _('Known probes: %s · successful: %s').format(stats.success + stats.failed, stats.success)),
 				E('small', { 'class': 'om-muted' }, _('Unknown: %s · missing: ≈%s').format(stats.unknown, stats.missing)),
@@ -270,10 +271,13 @@ function renderKey(key, data, now, hours, unavailable) {
 	var stats = statistics(samples, interval);
 	var state = keyState(key, now, interval, unavailable);
 	var label = key.label || key.tag || _('Unnamed');
+	var endpoint = key.server || '';
+	if (key.interface)
+		endpoint += (endpoint ? ' · ' : '') + _('Interface: %s').format(key.interface);
 	var measured = stats.success + stats.failed;
 	return E('section', { 'class': 'om-card' + (key.active === false ? ' om-archived' : '') }, [
 		E('div', { 'class': 'om-card-heading' }, [
-			E('div', {}, [ E('h3', {}, label), E('div', { 'class': 'om-muted om-key-details' }, [ (key.type || 'outbound') + ' · ' + (key.server || _('unknown server')) ]), E('code', { 'class': 'om-fingerprint', title: key.id || '' }, 'ID ' + String(key.id || '—').slice(0, 12)) ]),
+			E('div', {}, [ E('h3', {}, label), E('div', { 'class': 'om-muted om-key-details' }, [ (key.type || 'outbound') + ' · ' + (endpoint || _('unknown server')) ]), E('code', { 'class': 'om-fingerprint', title: key.id || '' }, 'ID ' + String(key.id || '—').slice(0, 12)) ]),
 			E('span', { 'class': 'om-badge om-' + state.kind }, state.label)
 		]),
 		Array.isArray(key.groups) && key.groups.length ? E('p', { 'class': 'om-groups om-muted' }, _('Groups: %s').format(key.groups.join(', '))) : '',

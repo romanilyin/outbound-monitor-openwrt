@@ -28,6 +28,8 @@ Run from the repository root with Python 3, Node.js and a compatible `ucode` ins
 python3 scripts/ci/static-checks.py
 node --test --test-isolation=none tests/ui.test.cjs tests/i18n.test.cjs
 ucode tests/core.uc
+ucode tests/podkop.uc
+ucode tests/runtime.uc /tmp/outbound-monitor-runtime
 ucode tests/network.uc
 ucode tests/update.uc
 ```
@@ -70,9 +72,11 @@ Keep the whole repository layout: the backend Makefile references `../VERSION` a
 
 ## Identity and measurement invariants
 
-`core.uc` always identifies a chart by SHA-256 of the complete canonical credential-bearing outbound configuration excluding its top-level tag. `main.uc` separately maps UCI `urltest_proxy_links` positions to current `section-N-out` tags and records `link_hash`, computed from the trimmed observed link before its `#fragment`. This hash is metadata only: never use it to find or assign credential history, and never persist the original link. URI-only changes that do not alter the generated outbound do not split a chart. Duplicate connection identities merge their tags/groups and use one current API alias.
+`core.uc` always identifies a chart by SHA-256 of the complete canonical credential-bearing outbound configuration excluding its top-level tag. `podkop.uc` maps `proxy_string` to `section-out`, URLTest/selector link positions to `section-N-out`, and VPN interface sections to allowed tag/interface pairs. `link_hash` is computed from the trimmed observed link before its `#fragment`. This hash is metadata only: never use it to find or assign credential history, and never persist the original link. URI-only changes that do not alter the generated outbound do not split a chart. Duplicate connection identities merge their tags/groups and use one current API alias.
 
-Rebinding must update the current tag, label, type, server and groups without replacing samples. Legacy migration compares the full old credential-bearing hash with the current configuration using the old tag; never merge by server alone or guess among ambiguous matches. Preserve the existing runtime outbounds fingerprint when upgrading, add a separate link-map fingerprint and reject changes on the same sing-box process until restart. Check both fingerprints again after probing. The chart identity scheme does not change after a restart; JSON/runtime correspondence retains the documented assumption, while an unapplied UCI link cannot redirect history through its hash.
+Rebinding must update the current tag, label, type, server, interface and groups without replacing samples. Legacy migration compares the full old credential-bearing hash with the current configuration using the old tag; never merge by server alone or guess among ambiguous matches. Preserve the existing runtime outbounds fingerprint when upgrading. Discovery version 2 adopts the expanded podkop metadata fingerprint once; subsequent changes on the same sing-box process remain rejected until restart. Check both fingerprints again after probing. The chart identity scheme does not change after a restart; JSON/runtime correspondence retains the documented assumption, while an unapplied UCI link cannot redirect history through its hash.
+
+`runtime.uc` identifies the unique live `sing-box run` process using PID/start time; short-lived check/version/help commands do not count as additional servers. Its tests use synthetic proc directories. Collector errors distinguish server identity, JSON configuration and podkop metadata changes; they do not claim that every configuration race is a daemon restart.
 
 Samples are `[timestamp, status, delay]`:
 

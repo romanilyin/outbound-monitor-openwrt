@@ -542,3 +542,8 @@ msgstr "Не проверялось"
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "Partial result"
 msgstr "Частичный результат"
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Interface: %s"
+msgstr "Интерфейс: %s"

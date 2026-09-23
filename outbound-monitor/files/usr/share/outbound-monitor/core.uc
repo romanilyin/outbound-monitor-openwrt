@@ -39,7 +39,7 @@ function connection(o, tag) {
 	return value;
 }
 
-export function discover(config, linkmap) {
+export function discover(config, linkmap, interface_map) {
 	let by_tag = {}, found = {};
 	for (let o in config.outbounds || [])
 		if (o.tag) by_tag[o.tag] = o;
@@ -52,7 +52,14 @@ export function discover(config, linkmap) {
 			for (let child in o.outbounds || []) visit(child, group, seen);
 			return;
 		}
-		if (o.type == 'direct' || o.type == 'block' || o.type == 'dns') return;
+		if (type(o.type) != 'string' || !length(o.type) || o.type == 'block' || o.type == 'dns') return;
+		// An ordinary direct/LAN/WAN outbound is not a VPN key. Interface-bound
+		// direct outbounds are monitored only when podkop explicitly maps them.
+		let vpn_interface = o.type == 'direct' && type(o.bind_interface) == 'string' &&
+			length(o.bind_interface) > 0 && type(interface_map) == 'object' &&
+			type(interface_map[o.tag]) == 'string' &&
+			interface_map[o.tag] == o.bind_interface;
+		if (o.type == 'direct' && !vpn_interface) return;
 		// Neither the original VPN link nor credentials leave the config reader.
 		let hash = linkmap ? linkmap[o.tag] : null;
 		let linked = type(hash) == 'string' && match(hash, /^[a-f0-9]{64}$/);
@@ -62,15 +69,16 @@ export function discover(config, linkmap) {
 		if (!found[id]) found[id] = {
 			id, tag: o.tag, label: o.tag, type: o.type,
 			server: o.server ? o.server + (o.server_port ? ':' + o.server_port : '') : '',
+			interface: vpn_interface ? o.bind_interface : null,
 			link_hash: linked ? hash : null, identity_source: 'outbound_config',
 			tags: [], groups: [], active: true, current: -1, samples: [],
 			last_checked: null, last_success: null, consecutive_failures: 0
 		};
 		if (!length(filter(found[id].tags, (tag) => tag == o.tag))) push(found[id].tags, o.tag);
-		if (!length(filter(found[id].groups, (name) => name == group))) push(found[id].groups, group);
+		if (group != null && !length(filter(found[id].groups, (name) => name == group))) push(found[id].groups, group);
 	}
 	for (let o in config.outbounds || [])
-		if (o.type == 'urltest') visit(o.tag, o.tag, {});
+		if (o.tag) visit(o.tag, o.type == 'urltest' || o.type == 'selector' ? o.tag : null, {});
 	return map(sort(keys(found)), function(id) {
 		let key = found[id];
 		key.tags = sort(key.tags);
@@ -82,6 +90,7 @@ export function discover(config, linkmap) {
 		key.link_hash = type(observed_hash) == 'string' && match(observed_hash, /^[a-f0-9]{64}$/) ? observed_hash : null;
 		key.type = o.type;
 		key.server = o.server ? o.server + (o.server_port ? ':' + o.server_port : '') : '';
+		key.interface = o.type == 'direct' ? o.bind_interface : null;
 		return key;
 	});
 };
@@ -118,7 +127,7 @@ export function bind_keys(previous, current, config) {
 		}
 		if (old) {
 			used[old.id] = true;
-			for (let field in ['id', 'tag', 'tags', 'label', 'type', 'server', 'groups', 'link_hash', 'identity_source'])
+			for (let field in ['id', 'tag', 'tags', 'label', 'type', 'server', 'interface', 'groups', 'link_hash', 'identity_source'])
 				old[field] = item[field];
 			old.active = true;
 		} else push(previous, item);

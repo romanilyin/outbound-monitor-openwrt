@@ -27,6 +27,8 @@ jobs:
         run: |
           UCODE=/tmp/outbound-monitor-ucode/bin/ucode
           "$UCODE" tests/core.uc
+          "$UCODE" tests/podkop.uc
+          "$UCODE" tests/runtime.uc /tmp/outbound-monitor-runtime
           "$UCODE" tests/update.uc
           "$UCODE" tests/network.uc
           for file in main update; do

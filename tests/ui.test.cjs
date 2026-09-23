@@ -228,6 +228,24 @@ test('the rendered page handles empty data and separates archived identities', (
   assert.match(view.statusNode.textContent, /History is in RAM/);
 });
 
+test('interface-bound WARP and standalone keys display their own endpoints with unchanged statistics', () => {
+  const { view } = makeView(() => Promise.resolve({}));
+  const warp = { id: 'warp-config', label: 'warp-out', tag: 'warp-out', type: 'direct', interface: 'awg0', server: '', active: true, current: 1, last_checked: 1000, samples: [[700, 1, 20], [1000, 1, 40]], groups: [] };
+  const standalone = { id: 'single-config', label: 'single-out', tag: 'single-out', type: 'vless', interface: null, server: 'example.test:443', active: true, current: 1, last_checked: 1000, samples: [[1000, 1, 15]], groups: [] };
+  const data = { version: 1, now: 1000, interval: 300, keys: [warp, standalone] };
+  view.render({ data });
+  const comparison = view.contentNode.children[0];
+  assert.match(comparison.textContent, /Interface: awg0/);
+  const details = descendants(view.contentNode).filter(node => node.attributes.class === 'om-muted om-key-details');
+  assert.deepEqual(details.map(node => node.textContent), ['direct · Interface: awg0', 'vless · example.test:443']);
+  assert.doesNotMatch(view.contentNode.textContent, /unknown server/);
+  const stats = helpers.comparisonRows(data, 1000, 24, false).find(row => row.key.id === warp.id).stats;
+  assert.equal(stats.mean, 30);
+  assert.equal(stats.variance, 100);
+  assert.equal(stats.failurePercent, 0);
+  assert.deepEqual(warp.samples, [[700, 1, 20], [1000, 1, 40]]);
+});
+
 test('range races cannot overwrite a newer response and RPC failure is visible', async () => {
   const pending = [];
   const { view } = makeView(hours => new Promise((resolve, reject) => pending.push({ hours, resolve, reject })));

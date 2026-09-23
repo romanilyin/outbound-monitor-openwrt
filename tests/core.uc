@@ -21,6 +21,11 @@ check(index(sprintf('%J', keys), 'secret-') == -1, 'no credential leakage');
 config.outbounds[3].uuid = 'rotated';
 check(canonical(map(discover(config), (k) => k.id)) != canonical(map(keys, (k) => k.id)), 'key rotation splits history');
 function clone(value) { return json(sprintf('%J', value)); }
+function tagged(outbound, tag) {
+	let value = clone(outbound);
+	value.tag = tag;
+	return value;
+}
 function vpn_config(connections) {
 	let outbounds = [{type:'urltest', tag:'vpn', outbounds:[]}];
 	for (let i = 0; i < length(connections); i++) {
@@ -108,6 +113,80 @@ delete wrong_legacy.identity_source;
 let protected_history = bind_keys([wrong_legacy], discover(vpn_config([conn_a]), {'vpn-1-out':hash_a}), vpn_config([conn_a]));
 check(length(protected_history) == 2 && !protected_history[0].active &&
 	length(protected_history[1].samples) == 0, 'legacy history never merges merely by matching server');
+
+// Standalone podkop links and selectors need not belong to a URLTest group.
+let standalone_config = {outbounds:[tagged(conn_a, 'single-out')]};
+let standalone = discover(standalone_config, {'single-out':hash_a});
+check(length(standalone) == 1 && standalone[0].id == id_a && standalone[0].tag == 'single-out' &&
+	length(standalone[0].groups) == 0 && standalone[0].interface == null,
+	'standalone proxy is discovered with the unchanged connection identity');
+let selector_config = {outbounds:[
+	{type:'selector', tag:'selector-only', outbounds:['nested', 'second-out', 'direct-out']},
+	{type:'selector', tag:'nested', outbounds:['first-out', 'selector-only']},
+	tagged(conn_a, 'first-out'), tagged(conn_b, 'second-out'),
+	{type:'direct', tag:'direct-out'}
+]};
+let selected = discover(selector_config);
+check(length(selected) == 2 && length(filter(selected, (key) => key.id == id_a || key.id == id_b)) == 2,
+	'selector-only nested leaves are discovered without selector or direct probes');
+check(length(filter(selected[0].groups, (group) => group == 'selector-only')) == 1 &&
+	length(selected[0].tags) == 1, 'selector cycles retain group metadata without duplicate aliases');
+
+// Only an explicit podkop VPN-section mapping admits an interface-bound direct.
+let warp_config = {outbounds:[
+	{type:'direct', tag:'warp-out', bind_interface:'awg0'},
+	{type:'direct', tag:'direct-out'},
+	{type:'direct', tag:'lan-out', bind_interface:'br-lan'},
+	{type:'direct', tag:'wan-out', bind_interface:'eth1'},
+	{type:'block', tag:'blocked'}, {type:'dns', tag:'dns-out'}, {tag:'not-a-proxy'}
+]};
+check(length(discover(warp_config)) == 0, 'plain, LAN, WAN and unmapped direct outbounds are excluded');
+check(length(discover(warp_config, null, {'warp-out':'awg1', 'direct-out':''})) == 0,
+	'mismatched interface and empty plain-direct mappings are excluded');
+check(length(discover({outbounds:[{type:'direct',tag:'numeric-out',bind_interface:'1'}]}, null,
+	{'numeric-out':1})) == 0, 'interface mapping requires an exact string value');
+let warp_map = {'warp-out':'awg0'};
+let warp = discover(warp_config, null, warp_map);
+let warp_id = sha256(canonical({type:'direct', bind_interface:'awg0'}));
+check(length(warp) == 1 && warp[0].id == warp_id && warp[0].tag == 'warp-out' &&
+	warp[0].interface == 'awg0' && warp[0].identity_source == 'outbound_config' && length(warp[0].groups) == 0,
+	'explicitly mapped WARP exposes only compact interface metadata');
+let grouped_warp = clone(warp_config);
+push(grouped_warp.outbounds, {type:'selector', tag:'select-warp', outbounds:['warp-out','lan-out']});
+let grouped_warp_keys = discover(grouped_warp, null, warp_map);
+check(length(grouped_warp_keys) == 1 && grouped_warp_keys[0].id == warp_id &&
+	canonical(grouped_warp_keys[0].groups) == '["select-warp"]',
+	'selector traversal includes mapped WARP once while excluding unmapped LAN');
+
+let mixed_config = clone(first);
+push(mixed_config.outbounds, tagged(conn_c, 'single-out'), tagged(conn_a, 'standalone-alias'),
+	{type:'direct', tag:'warp-out', bind_interface:'awg0'}, {type:'direct', tag:'direct-out'});
+let mixed_history = discover(first, first_map);
+for (let key in mixed_history) for (let timestamp in [1000,1300,1600]) record(key, timestamp, 1, 123, 300);
+mixed_history = bind_keys(mixed_history, discover(mixed_config, first_map, warp_map), mixed_config);
+let mixed_a = filter(mixed_history, (key) => key.id == id_a)[0];
+check(length(mixed_history) == 4 && length(mixed_a.tags) == 2 && canonical(mixed_a.samples) == original_samples,
+	'URLTest, standalone and WARP discovery deduplicates aliases and preserves existing history');
+for (let key in mixed_history) record(key, 1900, 1, 124, 300);
+check(length(mixed_a.samples) == 4 &&
+	length(filter(mixed_history, (key) => key.id == id_c)[0].samples) == 1 &&
+	length(filter(mixed_history, (key) => key.id == warp_id)[0].samples) == 1,
+	'mixed discovery produces one sample per connection per cycle');
+check(index(canonical(mixed_history), 'fake-secret') == -1 && index(canonical(mixed_history), 'vless://') == -1,
+	'standalone and mixed state never expose credentials or raw links');
+
+for (let timestamp in [1000,1300,1600]) record(warp[0], timestamp, 1, 123, 300);
+warp[0].interface = 'stale';
+let renamed_warp = {outbounds:[{type:'direct', tag:'renamed-warp', bind_interface:'awg0'}]};
+warp = bind_keys(warp, discover(renamed_warp, null, {'renamed-warp':'awg0'}), renamed_warp);
+check(length(warp) == 1 && warp[0].id == warp_id && warp[0].tag == 'renamed-warp' &&
+	warp[0].interface == 'awg0' && canonical(warp[0].samples) == original_samples,
+	'WARP tag rebinding refreshes interface metadata without changing history');
+let replaced_warp = {outbounds:[{type:'direct', tag:'renamed-warp', bind_interface:'awg1'}]};
+warp = bind_keys(warp, discover(replaced_warp, null, {'renamed-warp':'awg1'}), replaced_warp);
+check(length(warp) == 2 && !warp[0].active && canonical(warp[0].samples) == original_samples &&
+	warp[1].active && warp[1].interface == 'awg1' && length(warp[1].samples) == 0,
+	'changed WARP interface archives only its old connection history');
 check(classify(200, {delay:123})[0] == 1, 'success');
 check(classify(200, {delay:0})[0] == -1, 'zero delay invalid');
 check(classify(200, {delay:'123'})[0] == -1, 'string delay invalid');

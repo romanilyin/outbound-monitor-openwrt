@@ -45,6 +45,24 @@ The page's own reload button refreshed the original browser tab, which loaded
 reported no JavaScript errors. The final UI/i18n suite passed 25 tests; both
 SDK package builds and the release workflow passed on GitHub Actions.
 
+Revision `2026-9-23-3` adds standalone proxy keys, selector-only groups and
+podkop VPN interface sections. Its candidate passed 62 core, 9 podkop-mapping,
+22 process-identity, 22 updater, 34 network and 22 isolated DNS assertions,
+all collector/installer integration scenarios and 26 UI/i18n tests. A focused
+independent review found no substantive issues. Synthetic process fixtures
+cover concurrent check/version/help commands, malformed records, ambiguity,
+vanished records and PID reuse; integrations distinguish actual process,
+configuration and podkop-mapping races.
+
+A real collection used a separate copy of production history and discovered
+the existing three proxy keys plus the `warp-out` section bound to `awg0`.
+WARP answered the HTTP probe successfully (732 ms in that sample), both direct
+controls succeeded, every old ID/sample remained present, and the sing-box
+generation was unchanged. The source archive includes the new mapping and
+process modules. The separately reported router with one standalone key was
+unavailable for direct verification; that topology was tested in isolation,
+so its screenshot's specific runtime-error cause remains unconfirmed.
+
 Automated coverage includes key discovery, credential-safe identities, key
 reordering/replacement, migration, API errors, bounded history, chart statistics,
 translations and updater behavior. Run the current suites using the commands in

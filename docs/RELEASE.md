@@ -1,8 +1,8 @@
 ## English
 
-This revision refreshes cached styles after a button update and normalizes versioned asset names before checksum generation.
+This revision discovers standalone proxy keys, selector-only connections and podkop VPN interface sections such as WARP. Interface names appear in cards and comparison rows. Plain Internet direct outbounds remain excluded. Process tracking ignores short-lived `sing-box check`/`version` helpers and distinguishes process, JSON configuration and podkop-setting changes in collector errors. Existing key IDs and history are preserved when upgrading without restarting sing-box.
 
-Lightweight availability and HTTP latency monitoring for individual sing-box/podkop URLTest keys.
+Lightweight availability and HTTP latency monitoring for sing-box/podkop connections, including standalone keys and VPN interface sections.
 
 - Stable SHA-256 chart IDs from credential-bearing outbound configuration without the top-level tag: reordering preserves history and changed credentials create a new history. The observed podkop link hash is saved separately as metadata, never used to assign history; raw links are not stored.
 - LuCI comparison table with VPN failure percentage, mean delay, population variance and standard deviation. Latency metrics use successful samples only; unknown and suspected common network failures are excluded.
@@ -19,9 +19,9 @@ Use `install.sh` from the repository for automatic package-manager detection. Hi
 
 ## Русский
 
-В этой ревизии стили обновляются после установки по кнопке, а имена версионных файлов нормализуются до создания контрольных сумм.
+В этой ревизии обнаруживаются одиночные прокси-ключи, группы только с selector и VPN-секции podkop с привязкой к интерфейсу, например WARP. Интерфейс виден в карточке и сравнении; обычный прямой выход в Интернет исключён. Проверка процесса игнорирует кратковременные команды `sing-box check`/`version`, а ошибки различают смену процесса, JSON-конфигурации и настроек podkop. Обновление сохраняет ID и историю ключей без перезапуска sing-box.
 
-Лёгкий монитор доступности и HTTP-задержки каждого ключа в URLTest-группах sing-box/podkop.
+Лёгкий монитор доступности и HTTP-задержки подключений sing-box/podkop, включая одиночные ключи и VPN-секции с интерфейсом.
 
 - Устойчивые SHA-256 ID графиков по конфигурации outbound с учётными данными без верхнеуровневого тега: перестановка сохраняет историю, а изменение учётных данных создаёт новую. Наблюдаемый хеш ссылки podkop сохраняется отдельно как метаданные и не назначает историю; исходные ссылки не сохраняются.
 - Таблица сравнения LuCI с процентом отказов VPN, средней задержкой, генеральной дисперсией и стандартным отклонением. Метрики задержки учитывают только успешные пробы; неизвестные и вероятные общие сетевые сбои исключаются.

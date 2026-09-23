@@ -14,7 +14,7 @@
 
 </div>
 
-Outbound Monitor checks individual VPN outbounds in sing-box `urltest` groups every five minutes through an already enabled Clash API. Open **Status → Outbound Monitor** in LuCI.
+Outbound Monitor checks sing-box / podkop VPN outbounds every five minutes through an already enabled Clash API: standalone keys, members of URLTest or selector groups, and podkop VPN sections using a tunnel interface such as WARP. Open **Status → Outbound Monitor** in LuCI.
 
 The original source installation was tested on **OpenWrt 25.12.4**. Release builds target **OpenWrt 25.12.4 / APK** and **24.10.6 / IPK**; the 24.10 target has not been tested on hardware. See the [verification report](./docs/VERIFICATION.md) for the tested revision and scope.
 
@@ -26,16 +26,20 @@ The original source installation was tested on **OpenWrt 25.12.4**. Release buil
 - Successful-probe percentage, median latency and time of the last successful probe.
 - A recommendation to check or replace an outbound after three consecutive failures.
 - Distinct states for API errors, missing measurements and stale data.
-- Discovery of nested URLTest and selector groups; stable hashes preserve history when podkop links change positions and archive a replaced link independently.
+- Discovery of standalone proxy outbounds, URLTest and selector groups, including nested groups, and matching interface-bound podkop VPN outbounds. Stable hashes preserve history when podkop links change positions and archive a replaced link independently.
 - Two direct HTTPS control probes, with optional IPRegion DNS diagnostics when both fail.
 
 These are **HTTP measurements through the VPN**, not ICMP ping. A failure means the chosen HTTPS address could not be checked through that outbound at that moment. Internet, DNS or test-site problems can also cause failures; a failed probe does not prove that a VPN subscription has expired. Percentages describe discrete probes, not continuous uptime.
 
 The comparison table sorts by VPN failure percentage, then mean delay. Failure percentage is `100 × failures / (successes + failures)`. Mean, population variance and standard deviation use **successful probes only**; unknown results (`−1`), suspected common network failures (`−2`) and missing samples are excluded from these metrics. Variance is in ms², standard deviation in ms; one successful sample gives zero variance. Compare sample counts and freshness alongside the figures.
 
+Standalone proxy outbounds are monitored even when no URLTest group references them. A sing-box `direct` outbound bound to an interface is included only when its tag and interface match a podkop section with `connection_type=vpn`. For example, a `warp` section using `interface=awg0` can supply `warp-out` with `bind_interface=awg0`; LuCI displays **Interface: awg0** beside its history and comparison row. Ordinary direct internet outbounds and unrelated interface-bound direct outbounds are excluded from VPN charts. The separate internet control probes retain their existing scope.
+
 ## Key identity
 
 The chart ID is always **SHA-256 of the complete canonical outbound configuration, including credentials but excluding its top-level `tag`**. Reordering links or renaming tags updates current API tags and labels while preserving samples. Changing one connection's credentials/settings creates a new identity and archives only its old history. Equivalent duplicate connections share one history and probe, with their tags and groups merged.
+
+For an interface-bound VPN such as WARP, this identity includes the outbound configuration and interface name (for example, `bind_interface=awg0`). Tunnel credentials managed outside sing-box are not visible to the monitor: replacing them while keeping the same outbound and interface name does not create a new chart. Existing URLTest histories keep their IDs.
 
 For matching podkop entries, the monitor separately stores `link_hash`: SHA-256 of the observed UCI link after trimming whitespace and removing its `#fragment` label. This is metadata, **never the history lookup key**, and does not prove that the UCI link was applied. URI labels or parameters that do not change the generated outbound configuration do not split a chart. Raw links are never stored in history or returned through RPC.
 
@@ -144,7 +148,7 @@ After changing settings, run `/etc/init.d/outbound-monitor restart`.
 
 The API address and secret are read from the sing-box configuration; wildcard addresses `0.0.0.0` and `[::]` are replaced with loopback. If the API is disabled, the monitor reports an error and does not enable it. Only configurations contained in a single JSON file are supported.
 
-When the outbounds on disk or the hashed podkop link mapping change, the monitor waits for a new sing-box process before assigning measurements to the changed configuration. It also checks for changes during collection and discards affected measurements. On first observation and after a process change, it **assumes that the specified JSON matches the running sing-box configuration**. The API does not expose loaded passwords or UUIDs, so it cannot prove this match. Outbounds and link-map fingerprints plus process PID/start time detect subsequent changes; the observed link hash never determines which credential history receives a sample. Save and apply changes through podkop as usual; manual JSON edits after a restart but before the next poll can break the association.
+When the outbounds on disk or the hashed podkop connection metadata (links and interface mappings) change, the monitor waits for a new sing-box process before assigning measurements to the changed configuration. It also checks for changes during collection and discards affected measurements. On first observation and after a process change, it **assumes that the specified JSON matches the running sing-box configuration**. The API does not expose loaded passwords or UUIDs, so it cannot prove this match. Outbound/metadata fingerprints plus the PID/start time of the unique live `sing-box run` server detect subsequent changes; short-lived check/version/help commands are ignored. The observed link hash never determines which credential history receives a sample. Save and apply changes through podkop as usual; manual JSON edits after a restart but before the next poll can break the association.
 
 ```sh
 outbound-monitor status 24       # last 24 hours as JSON
