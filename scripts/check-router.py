@@ -39,6 +39,7 @@ sh -n scripts/install-local.sh
 echo 'PASS ucode compilation and shell syntax'
 sh tests/integration.sh
 sh tests/update-integration.sh
+sh tests/install-integration.sh
 sh tests/connectivity-integration.sh
 if [ -f tests/network-integration.sh ]; then sh tests/network-integration.sh; fi
 '''))

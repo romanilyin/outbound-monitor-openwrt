@@ -20,7 +20,9 @@ assertions on the router, plus mocked collection/update integration and 24 UI/i1
 tests. A real collection using a separate copy of history preserved all old
 samples, measured both direct controls successfully and identified one failing
 VPN among three. The installed IPRegion v2 result was parsed as six compact
-resolver rows.
+resolver rows. An isolated installer test rejected a corrupt package before
+any package/service operation and preserved configuration/history across all
+four combinations of service enabled/running state.
 
 Automated coverage includes key discovery, credential-safe identities, key
 reordering/replacement, migration, API errors, bounded history, chart statistics,
