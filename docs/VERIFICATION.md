@@ -63,6 +63,17 @@ process modules. The separately reported router with one standalone key was
 unavailable for direct verification; that topology was tested in isolation,
 so its screenshot's specific runtime-error cause remains unconfirmed.
 
+The published revision 3 passed both SDK builds and verification of all 14
+release checksums; its three APK files total 33,521 bytes. The LuCI button
+successfully upgraded the router from revision 2. Only the monitor's three
+packages changed; protected configuration, the sing-box process, monitor
+settings/service state and all previous chart IDs/samples remained unchanged.
+The installed collector reported four active connections with no error: the
+three existing keys had 61 samples each and WARP had its first successful
+sample. After the page's reload button, LuCI showed four charts and
+`direct · Интерфейс: awg0` on the WARP card/comparison row. No JavaScript errors
+were logged after the update; an older expired-session error preceded login.
+
 Automated coverage includes key discovery, credential-safe identities, key
 reordering/replacement, migration, API errors, bounded history, chart statistics,
 translations and updater behavior. Run the current suites using the commands in
