@@ -3,7 +3,9 @@
 import * as fs from 'fs';
 import { cursor } from 'uci';
 import { sha256 } from 'digest';
-import { discover, record, trim_history, classify, encode_path, canonical, config_loaded } from './core.uc';
+import { discover, bind_keys, record, trim_history, classify, encode_path, canonical, config_loaded, vpn_link_hash } from './core.uc';
+
+import { diagnosis, dns_check } from './network.uc';
 
 const DIR = '/tmp/outbound-monitor';
 const STATE = DIR + '/state.json';
@@ -23,6 +25,7 @@ function settings() {
 		interval: bounded(c.interval, 300, 60, 86400),
 		retention_days: bounded(c.retention_days, 7, 1, 7),
 		timeout: bounded(c.timeout, 8, 1, 30),
+		dns_check: c.dns_check != '0',
 		test_url: match(c.test_url || '', /^https:\/\/[^\s]+$/) ? c.test_url : 'https://www.gstatic.com/generate_204',
 		config: c.sing_box_config || '/etc/sing-box/config.json'
 	};
@@ -39,6 +42,27 @@ function generation() {
 	return length(found) == 1 ? found[0] : null;
 }
 function fingerprint(config) { return sha256(canonical(config?.outbounds || [])); }
+function podkop_links() {
+	let links = {};
+	let u = cursor();
+	u.foreach('podkop', 'section', function(section) {
+		if (section.proxy_config_type != 'urltest' || type(section.urltest_proxy_links) != 'array') return;
+		for (let i = 0; i < length(section.urltest_proxy_links); i++) {
+			let hash = vpn_link_hash(section.urltest_proxy_links[i]);
+			if (hash) links[section['.name'] + '-' + (i + 1) + '-out'] = hash;
+		}
+	});
+	return links;
+}
+function direct_outbound(config) {
+	// Explicit inherited routing may direct the control through a tunnel.
+	if (config?.route?.default_interface || config?.route?.default_mark) return null;
+	// A direct outbound bound to a tunnel/interface is not an ISP control.
+	let candidates = filter(config?.outbounds || [], (o) => o.type == 'direct' && o.tag &&
+		!o.detour && !o.bind_interface && !o.inet4_bind_address && !o.inet6_bind_address && !o.routing_mark);
+	let preferred = filter(candidates, (o) => o.tag == 'direct-out');
+	return length(preferred) ? preferred[0].tag : length(candidates) == 1 ? candidates[0].tag : null;
+}
 function request(base, path, query, timeout) {
 	let args = ['curl', '--silent', '--noproxy', '*', '--proto', '=http',
 		'--connect-timeout', '2', '--max-time', '' + (timeout + 2),
@@ -60,7 +84,8 @@ function save(state) {
 }
 function collect(c) {
 	fs.mkdir(DIR, 0700);
-	fs.chmod(DIR, 0700);
+	let dir_stat = fs.lstat(DIR);
+	if (dir_stat?.type != 'directory' || dir_stat.uid != 0 || (dir_stat.mode & 0777) != 0700) die('Unsafe state directory\n');
 	let now = time();
 	let state = read_json(STATE);
 	if (state?.version != 1 || type(state.keys) != 'array') state = {version: 1, keys: []};
@@ -76,22 +101,15 @@ function collect(c) {
 	let valid_config = type(config?.outbounds) == 'array';
 	let runtime = generation();
 	let config_hash = fingerprint(config);
-	let loaded = valid_config && config_loaded(state._runtime, runtime, config_hash);
-	let current = loaded ? discover(config) : [];
+	let linkmap = podkop_links();
+	let link_fingerprint = sha256(canonical(linkmap));
+	let loaded = valid_config && config_loaded(state._runtime, runtime, config_hash, link_fingerprint);
+	let current = loaded ? discover(config, linkmap) : [];
 	if (length(current) > 32) {
 		current = slice(current, 0, 32);
 		state.collector_error = 'Monitoring is limited to 32 keys';
 	}
-	if (loaded) {
-		for (let k in state.keys) k.active = false;
-		for (let item in current) {
-			let old = filter(state.keys, (k) => k.id == item.id)[0];
-			if (old) {
-				old.active = true;
-				old.groups = item.groups;
-			} else push(state.keys, item);
-		}
-	}
+	if (loaded) state.keys = bind_keys(state.keys, current, config);
 	let base = null;
 	if (type(address) == 'string' && match(address, /^(\[[0-9a-fA-F:]+\]|[A-Za-z0-9_.-]+):[0-9]+$/)) {
 		address = replace(address, /^0\.0\.0\.0:/, '127.0.0.1:');
@@ -111,6 +129,17 @@ function collect(c) {
 		!loaded ? 'Configuration changed; waiting for sing-box to load it' :
 		!base ? 'Clash API is not configured' : 'Clash API unavailable (HTTP ' + (health?.code || 0) + ')';
 	let before = json(sprintf('%J', state.keys));
+	let controls = [], probes = [];
+	let direct = direct_outbound(config);
+	for (let url in ['https://www.gstatic.com/generate_204', 'https://cp.cloudflare.com/generate_204']) {
+		let result = [-1, null];
+		if (ready && direct && health.body.proxies[direct]) {
+			let r = request(base, '/proxies/' + encode_path(direct) + '/delay',
+				['url=' + url, 'timeout=' + (c.timeout * 1000)], c.timeout);
+			result = classify(r.code, r.body);
+		}
+		push(controls, {url, status: result[0], delay: result[1]});
+	}
 	for (let k in state.keys) {
 		if (!k.active) continue;
 		let result = [-1, null];
@@ -120,15 +149,38 @@ function collect(c) {
 			result = classify(r.code, r.body);
 			if (result[0] == -1) state.collector_error = 'A probe could not be measured (API/control error)';
 		} else if (ready) state.collector_error = 'Configuration and running API differ; waiting for matching outbounds';
-		record(k, time(), result[0], result[1], c.interval);
+		push(probes, {key: k, timestamp: time(), status: result[0], delay: result[1]});
 	}
 	fs.unlink(HEADERS);
+	let connectivity = diagnosis(controls, map(probes, (p) => p.status), time());
+	connectivity.controls = controls;
+	connectivity.direct_tag = direct;
+	state.dns_enabled = c.dns_check;
+	state.dns_available = !!fs.access('/usr/bin/ipregion', 'x');
+	let dns = null;
+	if (connectivity.both_controls_failed || !state.dns || !c.dns_check || !state.dns_available)
+		dns = dns_check(c.dns_check, controls, DIR, time());
+	for (let p in probes)
+		record(p.key, p.timestamp, connectivity.common_failure ? -2 : p.status, p.delay, c.interval);
 	state.updated_at = time();
-	if (runtime != generation() || config_hash != fingerprint(read_json(c.config))) {
+	if (runtime != generation() || config_hash != fingerprint(read_json(c.config)) ||
+		link_fingerprint != sha256(canonical(podkop_links()))) {
 		state.keys = before;
 		for (let k in state.keys) if (k.active) record(k, state.updated_at, -1, null, c.interval);
 		state.collector_error = 'sing-box changed during collection; measurements discarded';
-	} else if (loaded) state._runtime = {generation: runtime, fingerprint: config_hash};
+		state.connectivity = diagnosis([], [], state.updated_at);
+	} else {
+		if (loaded) state._runtime = {generation: runtime, fingerprint: config_hash, link_fingerprint};
+		state.connectivity = connectivity;
+		if (dns && (dns.checked_at != null || state.dns?.checked_at == null)) state.dns = dns;
+		if (connectivity.both_controls_failed) {
+			if (type(state.network_events) != 'array') state.network_events = [];
+			push(state.network_events, {checked_at: connectivity.checked_at, connectivity, dns});
+		}
+	}
+	let cutoff = state.updated_at - c.retention_days * 86400;
+	state.network_events = filter(state.network_events || [], (e) => e.checked_at >= cutoff && e.checked_at <= state.updated_at);
+	state.network_events = slice(state.network_events, -128);
 	trim_history(state, state.updated_at, c.retention_days, c.interval);
 	save(state);
 }
@@ -148,6 +200,7 @@ switch (ARGV[0]) {
 		delete state._runtime;
 		let cutoff = state.now - bounded(ARGV[1], 24, 1, 168) * 3600;
 		for (let k in state.keys) k.samples = filter(k.samples, (s) => s[0] >= cutoff && s[0] <= state.now);
+		state.network_events = filter(state.network_events || [], (e) => e.checked_at >= cutoff && e.checked_at <= state.now);
 		printf('%J\n', state);
 		break;
 	default: die('Unknown command\n');

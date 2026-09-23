@@ -1,57 +1,87 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Source install for opkg and apk systems; only this plugin's files are copied.
+# Install/upgrade only Outbound Monitor packages from the official GitHub release.
 set -eu
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-[ "$(id -u)" = 0 ] || { echo 'Run as root on OpenWrt' >&2; exit 1; }
-for tool in ucode curl flock ubus; do
-	command -v "$tool" >/dev/null || { echo "Missing dependency: $tool" >&2; exit 1; }
+umask 077
+REPO=romanilyin/outbound-monitor-openwrt
+RELEASE=${OUTBOUND_MONITOR_RELEASE:-latest}
+die() { echo "outbound-monitor: $*" >&2; exit 1; }
+[ "$(id -u)" = 0 ] || die 'Run as root on OpenWrt'
+for cmd in curl ucode sha256sum flock mktemp; do
+	command -v "$cmd" >/dev/null || die "Missing dependency: $cmd (install it from the OpenWrt feed)"
 done
-ucode -e 'import * as fs from "fs"; import * as uci from "uci"; import * as digest from "digest";'
-[ -f /usr/lib/rpcd/ucode.so ] || { echo 'Missing rpcd-mod-ucode' >&2; exit 1; }
-[ -d /www/luci-static/resources ] || { echo 'LuCI is required' >&2; exit 1; }
-if [ -d "$ROOT/files" ]; then
-	BACKEND=$ROOT/files
-	LUCI=$ROOT/files
-	WEB=$ROOT/files/www
-else
-	BACKEND=$ROOT/outbound-monitor/files
-	LUCI=$ROOT/luci-app-outbound-monitor/root
-	WEB=$ROOT/luci-app-outbound-monitor/htdocs
+if command -v apk >/dev/null; then FORMAT=apk
+elif command -v opkg >/dev/null; then FORMAT=ipk
+else die 'Neither apk nor opkg is installed'; fi
+if [ "$RELEASE" != latest ]; then
+	printf '%s\n' "$RELEASE" | grep -Eq '^20[0-9]{2}-[1-9][0-9]?-[1-9][0-9]?-[1-9][0-9]*$' || die 'Invalid release tag; expected YYYY-M-D-N'
 fi
-# Validate the complete payload before stopping an existing monitor instance.
-for path in usr/bin/outbound-monitor usr/share/outbound-monitor/core.uc usr/share/outbound-monitor/main.uc etc/init.d/outbound-monitor etc/config/outbound-monitor; do
-	[ -f "$BACKEND/$path" ] || { echo "Missing payload: $path" >&2; exit 1; }
-done
-for path in usr/share/rpcd/ucode/outbound-monitor.uc usr/share/rpcd/acl.d/luci-app-outbound-monitor.json usr/share/luci/menu.d/luci-app-outbound-monitor.json; do
-	[ -f "$LUCI/$path" ] || { echo "Missing payload: $path" >&2; exit 1; }
-done
-for path in luci-static/resources/view/outbound-monitor/status.js luci-static/resources/outbound-monitor/style.css; do
-	[ -f "$WEB/$path" ] || { echo "Missing payload: $path" >&2; exit 1; }
-done
-if [ -x /etc/init.d/outbound-monitor ]; then /etc/init.d/outbound-monitor stop; fi
-copy_file() {
-	source=$1 dest=$2 mode=$3
-	mkdir -p "$(dirname "$dest")"
-	cp "$source" "$dest"
-	chmod "$mode" "$dest"
+if [ ! -e /tmp/outbound-monitor ] && [ ! -L /tmp/outbound-monitor ]; then mkdir -m 700 /tmp/outbound-monitor; fi
+[ -d /tmp/outbound-monitor ] && [ ! -L /tmp/outbound-monitor ] && \
+	ucode -e 'import * as fs from "fs"; let d=fs.lstat("/tmp/outbound-monitor"); exit(d?.type == "directory" && d.uid == 0 && (d.mode & 0777) == 0700 ? 0 : 1);'  || die 'Unsafe /tmp/outbound-monitor directory'
+[ ! -L /tmp/outbound-monitor/package.lock ] || die 'Unsafe package lock'
+exec 8>/tmp/outbound-monitor/package.lock
+flock -n 8 || die 'Another package installation is running'
+WORK=$(mktemp -d /tmp/outbound-monitor-install.XXXXXX)
+WAS_RUNNING=0; WAS_ENABLED=0; HAD_SERVICE=0; STOPPED=0
+if [ -x /etc/init.d/outbound-monitor ]; then
+	HAD_SERVICE=1
+	/etc/init.d/outbound-monitor running >/dev/null 2>&1 && WAS_RUNNING=1
+	/etc/init.d/outbound-monitor enabled >/dev/null 2>&1 && WAS_ENABLED=1
+fi
+cleanup() {
+	result=$?
+	if [ "$STOPPED" = 1 ]; then
+		if [ -f "$WORK/config" ]; then cp "$WORK/config" /etc/config/outbound-monitor; fi
+		if [ -x /etc/init.d/outbound-monitor ]; then
+			if [ "$HAD_SERVICE" = 0 ] || [ "$WAS_ENABLED" = 1 ]; then /etc/init.d/outbound-monitor enable
+			else /etc/init.d/outbound-monitor disable; fi
+			if [ "$HAD_SERVICE" = 0 ] || [ "$WAS_RUNNING" = 1 ]; then /etc/init.d/outbound-monitor restart
+			else /etc/init.d/outbound-monitor stop; fi
+		fi
+	fi
+	rm -rf "$WORK"
+	exit "$result"
 }
-copy_file "$BACKEND/usr/bin/outbound-monitor" /usr/bin/outbound-monitor 755
-copy_file "$BACKEND/etc/init.d/outbound-monitor" /etc/init.d/outbound-monitor 755
-for file in core.uc main.uc; do
-	copy_file "$BACKEND/usr/share/outbound-monitor/$file" "/usr/share/outbound-monitor/$file" 644
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+download() {
+	curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+		--connect-timeout 10 --max-time 120 --max-filesize 8388608 --retry 2 --retry-delay 2 \
+		--output "$2" "$1"
+}
+if [ "$RELEASE" = latest ]; then API="https://api.github.com/repos/$REPO/releases/latest"
+else API="https://api.github.com/repos/$REPO/releases/tags/$RELEASE"; fi
+download "$API" "$WORK/release.json" || die 'Cannot fetch GitHub release metadata'
+TAG=$(ucode -e '
+import { readfile } from "fs";
+let r; try { r = json(readfile(ARGV[0])); } catch(e) { exit(1); }
+if (r.draft || r.prerelease || !match(r.tag_name || "", /^20[0-9]{2}-[1-9][0-9]?-[1-9][0-9]?-[1-9][0-9]*$/)) exit(1);
+print(r.tag_name);
+' "$WORK/release.json") || die 'Release is missing, unstable, or has an invalid tag'
+[ "$RELEASE" = latest ] || [ "$TAG" = "$RELEASE" ] || die 'Release metadata does not match the requested tag'
+BASE="https://github.com/$REPO/releases/download/$TAG"
+download "$BASE/SHA256SUMS" "$WORK/SHA256SUMS" || die 'Missing release checksums'
+for pkg in outbound-monitor luci-app-outbound-monitor luci-i18n-outbound-monitor-ru; do
+	name="$pkg.$FORMAT"
+	download "$BASE/$name" "$WORK/$name" || die "Cannot download $name"
+	expected=$(awk -v name="$name" '$2 == name { print $1 }' "$WORK/SHA256SUMS")
+	[ "${#expected}" = 64 ] || die "Missing or ambiguous checksum for $name"
+	case "$expected" in *[!0-9a-f]*) die "Invalid checksum for $name" ;; esac
+	actual=$(sha256sum "$WORK/$name" | awk '{ print $1 }')
+	[ "$actual" = "$expected" ] || die "Checksum mismatch for $name; nothing installed"
 done
-if [ ! -e /etc/config/outbound-monitor ]; then
-	copy_file "$BACKEND/etc/config/outbound-monitor" /etc/config/outbound-monitor 600
+echo "Installing Outbound Monitor $TAG ($FORMAT)"
+# Refresh indexes only; never upgrade unrelated installed packages.
+if [ "$FORMAT" = apk ]; then apk update; else opkg update; fi
+if [ -f /etc/config/outbound-monitor ]; then cp /etc/config/outbound-monitor "$WORK/config"; fi
+STOPPED=1
+if [ "$HAD_SERVICE" = 1 ]; then /etc/init.d/outbound-monitor stop; fi
+if [ "$FORMAT" = apk ]; then
+	apk add --allow-untrusted "$WORK/outbound-monitor.apk" "$WORK/luci-app-outbound-monitor.apk" "$WORK/luci-i18n-outbound-monitor-ru.apk"
+else
+	opkg install "$WORK/outbound-monitor.ipk" "$WORK/luci-app-outbound-monitor.ipk" "$WORK/luci-i18n-outbound-monitor-ru.ipk"
 fi
-for path in usr/share/rpcd/ucode/outbound-monitor.uc usr/share/rpcd/acl.d/luci-app-outbound-monitor.json usr/share/luci/menu.d/luci-app-outbound-monitor.json; do
-	copy_file "$LUCI/$path" "/$path" 644
-done
-for path in luci-static/resources/view/outbound-monitor/status.js luci-static/resources/outbound-monitor/style.css; do
-	copy_file "$WEB/$path" "/www/$path" 644
-done
-/etc/init.d/outbound-monitor enable
-/etc/init.d/outbound-monitor start
-# Load the new read-only RPC object with SIGHUP; no network/VPN restart.
+[ "$(cat /usr/share/outbound-monitor/version)" = "$TAG" ] || die 'Installed version did not match the release'
 /etc/init.d/rpcd reload
-echo 'Installed. LuCI: Status -> Outbound Monitor (/cgi-bin/luci/admin/status/outbound-monitor)'
+echo "Installed $TAG. LuCI: Status -> Outbound Monitor. Reload the browser page."

@@ -24,7 +24,22 @@ export function canonical(value) {
 	return sprintf('%J', value);
 };
 
-export function discover(config) {
+export function vpn_link_hash(link) {
+	if (type(link) != 'string') return null;
+	let value = trim(link);
+	let fragment = index(value, '#');
+	if (fragment >= 0) value = trim(substr(value, 0, fragment));
+	return length(value) ? sha256(value) : null;
+};
+
+function connection(o, tag) {
+	let value = {};
+	for (let name in keys(o)) if (name != 'tag') value[name] = o[name];
+	if (tag != null) value.tag = tag;
+	return value;
+}
+
+export function discover(config, linkmap) {
 	let by_tag = {}, found = {};
 	for (let o in config.outbounds || [])
 		if (o.tag) by_tag[o.tag] = o;
@@ -38,23 +53,81 @@ export function discover(config) {
 			return;
 		}
 		if (o.type == 'direct' || o.type == 'block' || o.type == 'dns') return;
-		// Only a digest, public endpoint and metadata leave the config reader.
-		let id = sha256(canonical(o));
+		// Neither the original VPN link nor credentials leave the config reader.
+		let hash = linkmap ? linkmap[o.tag] : null;
+		let linked = type(hash) == 'string' && match(hash, /^[a-f0-9]{64}$/);
+		// Charts are bound to actual credentials/configuration, never a pending
+		// UCI link at the same slot. Keep the observed URI hash as metadata.
+		let id = sha256(canonical(connection(o)));
 		if (!found[id]) found[id] = {
 			id, tag: o.tag, label: o.tag, type: o.type,
 			server: o.server ? o.server + (o.server_port ? ':' + o.server_port : '') : '',
-			groups: [], active: true, current: -1, samples: [],
+			link_hash: linked ? hash : null, identity_source: 'outbound_config',
+			tags: [], groups: [], active: true, current: -1, samples: [],
 			last_checked: null, last_success: null, consecutive_failures: 0
 		};
-		push(found[id].groups, group);
+		if (!length(filter(found[id].tags, (tag) => tag == o.tag))) push(found[id].tags, o.tag);
+		if (!length(filter(found[id].groups, (name) => name == group))) push(found[id].groups, group);
 	}
 	for (let o in config.outbounds || [])
 		if (o.type == 'urltest') visit(o.tag, o.tag, {});
-	return map(sort(keys(found)), (id) => found[id]);
+	return map(sort(keys(found)), function(id) {
+		let key = found[id];
+		key.tags = sort(key.tags);
+		key.groups = sort(key.groups);
+		key.tag = key.tags[0];
+		key.label = key.tag;
+		let o = by_tag[key.tag];
+		let observed_hash = linkmap ? linkmap[key.tag] : null;
+		key.link_hash = type(observed_hash) == 'string' && match(observed_hash, /^[a-f0-9]{64}$/) ? observed_hash : null;
+		key.type = o.type;
+		key.server = o.server ? o.server + (o.server_port ? ':' + o.server_port : '') : '';
+		return key;
+	});
+};
+
+// Preserve legacy samples only after matching the complete credential-bearing
+// configuration, substituting its old tag. Never infer identity from a server.
+export function bind_keys(previous, current, config) {
+	let by_tag = {}, legacy = {}, used = {};
+	for (let o in config.outbounds || []) if (o.tag) by_tag[o.tag] = o;
+	for (let old in previous) {
+		old.active = false;
+		if (old.identity_source && old.identity_source != 'outbound_config') continue;
+		let matches = [];
+		for (let item in current) {
+			for (let tag in item.tags) {
+				let legacy_tag = old.identity_source == 'outbound_config' ? null : old.tag;
+				if (old.id == sha256(canonical(connection(by_tag[tag], legacy_tag)))) {
+					push(matches, item.id);
+					break;
+				}
+			}
+		}
+		// Ambiguous legacy identities remain archived instead of guessing.
+		if (length(matches) == 1) {
+			if (!legacy[matches[0]]) legacy[matches[0]] = [];
+			push(legacy[matches[0]], old);
+		}
+	}
+	for (let item in current) {
+		let old = filter(previous, (key) => key.id == item.id)[0];
+		if (!old) {
+			let candidates = sort(legacy[item.id] || [], (a, b) => (b.last_checked || 0) - (a.last_checked || 0));
+			old = filter(candidates, (key) => !used[key.id])[0];
+		}
+		if (old) {
+			used[old.id] = true;
+			for (let field in ['id', 'tag', 'tags', 'label', 'type', 'server', 'groups', 'link_hash', 'identity_source'])
+				old[field] = item[field];
+			old.active = true;
+		} else push(previous, item);
+	}
+	return previous;
 };
 
 export function record(key, timestamp, status, delay, interval) {
-	if (status != 1 && status != 0) status = -1;
+	if (status != 1 && status != 0 && status != -2) status = -1;
 	let continuous = key.last_checked != null && timestamp >= key.last_checked &&
 		timestamp - key.last_checked <= interval * 1.8;
 	// A clock step back creates a gap rather than future/duplicate history.
@@ -93,6 +166,8 @@ export function classify(code, body) {
 
 // Reject changed config on an observed process. New processes are assumed to
 // have loaded the current file; Clash API cannot expose credential identities.
-export function config_loaded(previous, generation, fingerprint) {
-	return generation != null && (previous == null || previous.generation != generation || previous.fingerprint == fingerprint);
+export function config_loaded(previous, generation, fingerprint, link_fingerprint) {
+	return generation != null && (previous == null || previous.generation != generation ||
+		(previous.fingerprint == fingerprint &&
+		(previous.link_fingerprint == null || previous.link_fingerprint == link_fingerprint)));
 };

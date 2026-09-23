@@ -1,0 +1,542 @@
+# Outbound Monitor LuCI translations.
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-outbound-monitor 2026-9-23-1\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s — HTTP delay, ms. Failures are at −10; unknown and missing probes break the line."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s ms"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s of %s known results"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s: HTTP delay in milliseconds"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "1 hour"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "24 hours"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "6 hours"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "7 days"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "An update is available."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Archive · replaced keys"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Archived key"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Check for updates"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Check GitHub for the latest stable release."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Check whether the collector is running."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Checking GitHub…"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Collector error: %s. The current key status is unknown."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Consecutive failures: %s. Check the connection and consider replacing the key. Failures do not prove that the key has expired."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Could not refresh the monitor: %s."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Current keys"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Export:"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "VPN failure: −10"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "VPN failures"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Gaps mean unknown or missing probes"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Groups: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "History is in RAM and is lost on reboot"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "History period"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "History: %s · Probe interval: %s min · Collector: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Hover over or touch the chart to inspect a probe."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "HTTP delay, ms"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "HTTP probe history for each key"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "HTTP, ms"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Installed: %s · Latest: %s · Last checked: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Installing update… History remains visible while services restart."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Last probe: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Last success: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Median HTTP delay"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Monitoring data is not available yet. Retrying in a minute."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "no data"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "No fresh response"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "No keys detected yet. History will appear after the first collector probe."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "No newer stable release."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "No probes in the selected period yet."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "no result"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Not checked yet"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Outbound Monitor"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Period"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Probe failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "probe failed (−10)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Probe succeeded"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Probe URL: %s · Timeout: %s s · Retention: %s days · History refresh: 60 s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Probes: %s. Missing between probes: ≈%s. The percentage describes individual probes, not continuous uptime."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Refreshing data for %s…"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Release notes"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Reload page"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Showing previously received data for %s; the current status is unknown."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Stale data"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Storage: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Successful probes"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "successful probes in this period"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "The monitor returned invalid data"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "The positive scale is linear; −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "The updater returned invalid data"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "This key is no longer in the current configuration. Its history is retained below."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "unknown"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Unknown result"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "unknown results: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "unknown server"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Unnamed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Update failed."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Update from GitHub"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Update installed. Reload this page to use the new interface."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Updater: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Use the left and right arrow keys to select a probe."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Version and updates"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Waiting for the updater to reconnect. The action will not be sent again."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Key"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "VPN failure rate"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Mean HTTP delay"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Population variance"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Known probes: %s · successful: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Unknown: %s · missing: ≈%s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "External failures: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s ms²"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Standard deviation"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "SD: %s ms"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Active outbounds · %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "No active outbounds."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "VPN failure rate = VPN failures / (successes + VPN failures). Mean, population variance and SD use successes only. Unknown, missing and suspected external failures are excluded. One success gives zero variance."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Sorted by failure rate, then mean delay. These are historical figures; compare sample counts and freshness before choosing a key."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "External network failure"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "external network failure suspected (−10)"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Suspected external failures: %s. Excluded from VPN failure rate and delay statistics."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Suspected external failure: −10"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Blue failures suggest an external network or ISP issue; the cause is not confirmed."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "At %s, both direct checks and all VPN probes failed. An external network or ISP issue is possible."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Direct checks failed while at least one VPN probe succeeded. Last check: %s."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "OK"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Issues detected"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Error"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Mismatch"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Warning"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Timed out"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Unavailable"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Blocked"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Disabled"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "IPRegion is not installed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Not run"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "OK: %s · mismatch: %s · warning: %s · failed: %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Direct failed; VPN available"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Direct checks passed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Direct checks failed"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "DNS diagnostics are disabled."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Optional DNS diagnostics require IPRegion."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "DNS diagnostics have not run yet. They run after both direct checks fail."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "DNS diagnostics · %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Encrypted DNS is tested through the router route, which may include a VPN. These results do not prove an ISP failure or DNS tampering."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Resolver"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Result"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "Recorded network incidents · %s"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "The latest 20 incidents are shown. JSON export includes all received events."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Time"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Connectivity"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "DNS diagnostics"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Not tested"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Partial result"
+msgstr ""

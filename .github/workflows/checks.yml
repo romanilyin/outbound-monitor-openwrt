@@ -1,0 +1,37 @@
+name: Checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static and UI checks
+        run: |
+          python3 scripts/ci/static-checks.py
+          node --check luci-app-outbound-monitor/htdocs/luci-static/resources/view/outbound-monitor/status.js
+          node --test tests/ui.test.cjs tests/i18n.test.cjs
+      - name: Build host ucode
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential cmake git pkg-config libjson-c-dev libssl-dev
+          sh scripts/ci/build-ucode.sh /tmp/outbound-monitor-ucode
+      - name: Backend tests and syntax
+        env:
+          LD_LIBRARY_PATH: /tmp/outbound-monitor-ucode/lib
+        run: |
+          UCODE=/tmp/outbound-monitor-ucode/bin/ucode
+          "$UCODE" tests/core.uc
+          "$UCODE" tests/update.uc
+          "$UCODE" tests/network.uc
+          for file in main update; do
+            "$UCODE" -c -o /tmp/$file.ucb outbound-monitor/files/usr/share/outbound-monitor/$file.uc
+          done
+          "$UCODE" -c -o /tmp/rpc.ucb luci-app-outbound-monitor/root/usr/share/rpcd/ucode/outbound-monitor.uc
+      - name: Build source bundle
+        run: python3 scripts/make-bundle.py

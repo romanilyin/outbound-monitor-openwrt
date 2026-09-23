@@ -1,0 +1,17 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -eu
+umask 077
+if [ ! -e /tmp/outbound-monitor ] && [ ! -L /tmp/outbound-monitor ]; then mkdir -m 700 /tmp/outbound-monitor; fi
+[ -d /tmp/outbound-monitor ] && [ ! -L /tmp/outbound-monitor ] && \
+	ucode -e 'import * as fs from "fs"; let d=fs.lstat("/tmp/outbound-monitor"); exit(d?.type == "directory" && d.uid == 0 && (d.mode & 0777) == 0700 ? 0 : 1);'  || { echo 'Unsafe state directory' >&2; exit 1; }
+[ ! -L /tmp/outbound-monitor/update.lock ] || exit 1
+case "${1:-}" in
+	status) exec ucode /usr/share/outbound-monitor/update.uc status ;;
+	check|install)
+		exec 9>/tmp/outbound-monitor/update.lock
+		flock -n 9 || exit 0
+		exec ucode /usr/share/outbound-monitor/update.uc "$1"
+		;;
+	*) echo 'Usage: outbound-monitor-update {status|check|install}' >&2; exit 1 ;;
+esac

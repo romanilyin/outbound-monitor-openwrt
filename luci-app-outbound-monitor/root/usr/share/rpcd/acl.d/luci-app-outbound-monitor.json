@@ -1,6 +1,7 @@
 {
   "luci-app-outbound-monitor": {
     "description": "Read VPN availability and delay history",
-    "read": { "ubus": { "luci.outbound-monitor": ["status"] } }
+    "read": { "ubus": { "luci.outbound-monitor": ["status", "update_status"] } },
+    "write": { "ubus": { "luci.outbound-monitor": ["check_update", "update"] } }
   }
 }

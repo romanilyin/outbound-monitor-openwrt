@@ -1,0 +1,65 @@
+name: Release
+on:
+  push:
+    tags: ['20*-*-*-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+  packages:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['25.12.4', '24.10.6']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDK host dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib gettext git libncurses-dev libssl-dev python3 rsync unzip wget zstd file
+      - name: Build APK or IPK packages
+        run: sh scripts/build-sdk-packages.sh '${{ matrix.version }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.version }}
+          path: dist/*/*
+          if-no-files-found: error
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [checks, packages]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: outbound-monitor-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tag
+        run: test "$(cat VERSION)" = "$GITHUB_REF_NAME"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: artifacts
+          merge-multiple: true
+      - name: Assemble release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name '*.apk' -o -name '*.ipk' \) -exec cp '{}' release-assets/ \;
+          python3 scripts/make-bundle.py
+          cp "dist/outbound-monitor-$GITHUB_REF_NAME.tar.gz" install.sh release-assets/
+          cd release-assets
+          sha256sum * > SHA256SUMS
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/RELEASE.md
+          previous=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest=false
+          if python3 scripts/newer-release.py "$GITHUB_REF_NAME" "$previous"; then
+            gh release edit "$GITHUB_REF_NAME" --latest
+          fi

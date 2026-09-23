@@ -1,41 +1,32 @@
-# Проверка 23 сентября 2026
+# Router verification — 2026-09-23
 
-Испытано на Cudy WR3000P v1, OpenWrt 25.12.4 (mediatek/filogic),
-sing-box-extended 1.12.17. Установка — из локального архива файлов, без SDK.
+Tested on OpenWrt 25.12.4, Cudy WR3000P v1 (mediatek/filogic),
+with sing-box-extended 1.12.17. OpenWrt 24.10 is an SDK build target;
+no 24.10 hardware runtime claim is made.
 
-- 26 утверждений тестов ucode: обнаружение вложенных групп, циклы, ротация ключей,
-  UTF-8 в именах, классификация ошибок, история, ограничение размера, перевод часов.
-- Изолированные интеграционные сценарии с заглушкой curl: 200/503, HTTP 401,
-  некорректный JSON, сетевой сбой, смена конфигурации без перезапуска, отсутствие
-  ключей и API-secret в данных и аргументах curl.
-- 10 тестов JavaScript: график, пропуски, свежесть, рекомендации, экспорт CSV,
-  гонка запросов периода и отказ RPC. Синтаксис ucode, shell, JS, Python проверен.
-- Реальный авторизованный LuCI: меню, три графика, смена периода, видимые точки
-  отказа на −10; проверена тёмная тема и ширина 522 px. SVG целиком помещается.
-- RPC `luci.outbound-monitor status` работает. Служба procd работает и включена
-  для загрузки; проверен следующий автоматический цикл, без ручного запуска.
-- Измерения циклов 14:57:27–32 и 15:02:28–33 MSK разделены 301 секундой.
-  Последний цикл: vpn-2-out 129 мс, vpn-3-out 150 мс; vpn-1-out — третий
-  последовательный отказ. Это результаты HTTP-пробы на момент проверки.
-- Между циклами основной процесс сборщика: RSS 1204 КБ (не включая дочерний sleep,
-  разделяемые страницы и кратковременные процессы ucode/curl во время сбора).
+The initial source installation was checked in authenticated LuCI, including
+three outbound charts, period selection, red failures at −10, dark theme and
+a 522 px viewport. The procd service remained running and enabled; two real
+automatic samples were 301 seconds apart. The idle collector shell used
+approximately 1.2 MB RSS, excluding shared pages and temporary probe processes.
 
-Процесс sing-box сохранил PID `24980`. Ни podkop, ни sing-box, ни сеть не
-останавливались и не перезапускались. Перечитан только rpcd для нового RPC-объекта.
+The existing sing-box process and hashes of podkop, sing-box, network, firewall
+and DHCP configuration were unchanged. No VPN or network service was restarted.
+Only the monitor service and RPC registration are involved in installation.
+Private router endpoints, keys and configuration hashes are omitted here.
 
-Контрольные суммы SHA-256 до и после установки совпали:
+The release candidate passed 49 core, 22 updater, 34 network and 22 isolated DNS
+assertions on the router, plus mocked collection/update integration and 24 UI/i18n
+tests. A real collection using a separate copy of history preserved all old
+samples, measured both direct controls successfully and identified one failing
+VPN among three. The installed IPRegion v2 result was parsed as six compact
+resolver rows.
 
-| Файл | SHA-256 |
-| --- | --- |
-| /etc/config/podkop | 7a1ebfb9039ede35669e198160d604a644270160110a7703c3ea9b4847473ae1 |
-| /etc/config/sing-box | 5b9ebe828b51de1122e8e25fbf8e331b2b548b6affbabcfe2b1a4ff1eb7ca451 |
-| /etc/sing-box/config.json | fb0cc208ecb0e5f1b96001a64f59c0842ac6ba52be904e55a875fd8ba694df5e |
-| /etc/config/network | 65f3a98df7a6233a54b37019678711624c58800ee033ac06800e39c6a84d242f |
-| /etc/config/firewall | 623589642440ec4fd735e4b949b61c452d707fc1a04e38c0c0f77ce2c5446b84 |
-| /etc/config/dhcp | 736a471ab158bfdf53afbdda08a4c1217783a40890f91799f60040c20417fce4 |
+Automated coverage includes key discovery, credential-safe identities, key
+reordering/replacement, migration, API errors, bounded history, chart statistics,
+translations and updater behavior. Run the current suites using the commands in
+[development notes](./DEVELOPMENT.md); GitHub Actions records release build results.
 
-Ограничения: SDK/IPK/APK-сборка не выполнялась; проверена установка файлов.
-7-дневное реальное накопление и перезагрузка роутера не проводились, чтобы не
-прерывать сеть; ограничения истории покрыты тестами. Активные delay-пробы
-обновляют общую таблицу задержек URLTest — см. README. API не доказывает
-соответствие паролей в JSON работающему процессу при произвольном ручном редактировании.
+A real seven-day soak and router reboot are intentionally outside this check.
+RAM retention is tested with synthetic timestamps. Active delay probes update
+sing-box URLTest latency history; see the README for effects and identity limits.

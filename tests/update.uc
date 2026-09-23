@@ -1,0 +1,20 @@
+import { parse_version, newer, valid_release } from '../outbound-monitor/files/usr/share/outbound-monitor/update-core.uc';
+let count = 0;
+function check(ok, message) { if (!ok) die('FAIL updater: ' + message + '\n'); count++; }
+for (let v in ['2026-9-23-1','2026-12-31-10']) check(parse_version(v) != null, 'valid tag');
+for (let v in ['2026.9.23-1','v2026-9-23-1','2026-13-1-1','2026-1-32-1','2026-0-1-1','2026-1-1-0','2026-09-23-1','2026-9-23-1;reboot','']) check(parse_version(v) == null, 'reject invalid tag');
+check(newer('2026-10-1-1', '2026-9-23-10'), 'numeric months');
+check(newer('2026-9-23-10', '2026-9-23-2'), 'numeric revision');
+check(!newer('2026-9-23-1','2026-9-23-1'), 'no same version update');
+check(!newer('2026-9-23-1','2026-9-23-2'), 'no downgrade');
+check(newer('2026-9-23-1','0.1.0'), 'prototype migration');
+check(!newer('2026-9-23-1','unknown'), 'unknown current fails closed');
+let tag = '2026-9-23-1';
+let base = 'https://github.com/romanilyin/outbound-monitor-openwrt/releases/download/' + tag + '/';
+let r = {tag_name:tag,draft:false,prerelease:false,assets:map(['outbound-monitor.apk','luci-app-outbound-monitor.apk','luci-i18n-outbound-monitor-ru.apk','SHA256SUMS'], (name) => ({name,browser_download_url:base+name}))};
+check(valid_release(r,'apk'), 'complete stable release');
+check(!valid_release(r,'ipk'), 'missing target assets');
+r.draft=true; check(!valid_release(r,'apk'), 'draft rejected'); r.draft=false;
+r.prerelease=true; check(!valid_release(r,'apk'), 'prerelease rejected'); r.prerelease=false;
+r.assets[0].browser_download_url='https://other.example/code.apk'; check(!valid_release(r,'apk'), 'foreign URL rejected');
+printf('PASS %d updater assertions\n', count);
