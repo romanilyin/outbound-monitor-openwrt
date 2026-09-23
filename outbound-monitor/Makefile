@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=outbound-monitor
 PKG_VERSION:=2026.9.23
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_LICENSE:=MIT
 
 include $(INCLUDE_DIR)/package.mk

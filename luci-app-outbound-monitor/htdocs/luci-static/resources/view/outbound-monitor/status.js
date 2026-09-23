@@ -417,7 +417,7 @@ return view.extend({
 		this.contentNode = E('div');
 		this.updaterNode = E('section', { 'class': 'om-updater', 'aria-live': 'polite' });
 		var root = E('div', { 'class': 'om-page' }, [
-			E('link', { rel: 'stylesheet', href: L.resource('outbound-monitor/style.css') }),
+			E('link', { rel: 'stylesheet', href: L.resource('outbound-monitor/style.css') + '?v=' + encodeURIComponent(this.updater && this.updater.current || Date.now()) }),
 			E('div', { 'class': 'om-header' }, [ E('div', {}, [ E('h2', {}, _('Outbound Monitor')), E('p', { 'class': 'om-muted' }, _('HTTP probe history for each key')) ]), E('div', { 'class': 'om-controls' }, [ E('label', {}, [ _('Period'), ' ', selector ]), E('span', { 'class': 'om-export-label' }, _('Export:')), this.exportJson, this.exportCsv ]) ]),
 			this.updaterNode,
 			this.statusNode,

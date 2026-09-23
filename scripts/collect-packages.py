@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect stable release aliases and original names from one SDK build."""
+"""Collect stable aliases and GitHub-compatible versioned names from one SDK build."""
 import pathlib
 import shutil
 import sys
@@ -12,6 +12,8 @@ for name in ('outbound-monitor', 'luci-app-outbound-monitor', 'luci-i18n-outboun
     if len(matches) != 1:
         raise SystemExit(f'Expected one {name}.{fmt}, found {len(matches)}: {matches}')
     path = matches[0]
-    shutil.copyfile(path, destination / path.name)
+    # GitHub rewrites '~' in asset names; normalize before creating SHA256SUMS.
+    asset_name = path.name.replace('~', '.')
+    shutil.copyfile(path, destination / asset_name)
     shutil.copyfile(path, destination / f'{name}.{fmt}')
     print(f'{name}.{fmt}: {path.stat().st_size} bytes ({path.name})')

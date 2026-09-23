@@ -1,5 +1,7 @@
 ## English
 
+This revision refreshes cached styles after a button update and normalizes versioned asset names before checksum generation.
+
 Lightweight availability and HTTP latency monitoring for individual sing-box/podkop URLTest keys.
 
 - Stable SHA-256 chart IDs from credential-bearing outbound configuration without the top-level tag: reordering preserves history and changed credentials create a new history. The observed podkop link hash is saved separately as metadata, never used to assign history; raw links are not stored.
@@ -16,6 +18,8 @@ Lightweight availability and HTTP latency monitoring for individual sing-box/pod
 Use `install.sh` from the repository for automatic package-manager detection. History lives in RAM and resets on reboot. Direct controls may still depend on the configured DNS resolver or a system default route through a VPN; IPRegion also uses the router's route. These signals do not prove ISP fault, DNS tampering or provider responsibility. See README for installation, active URLTest side effects and the assumption that JSON matches the running sing-box process. Hardware validation scope is recorded separately in `docs/VERIFICATION.md`.
 
 ## Русский
+
+В этой ревизии стили обновляются после установки по кнопке, а имена версионных файлов нормализуются до создания контрольных сумм.
 
 Лёгкий монитор доступности и HTTP-задержки каждого ключа в URLTest-группах sing-box/podkop.
 

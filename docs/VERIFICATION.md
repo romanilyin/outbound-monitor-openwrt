@@ -24,6 +24,16 @@ resolver rows. An isolated installer test rejected a corrupt package before
 any package/service operation and preserved configuration/history across all
 four combinations of service enabled/running state.
 
+Release `2026-9-23-1` was installed from GitHub using the LuCI update buttons.
+The three APK packages totalled 31,677 bytes; all 14 published assets matched
+their published checksums. The installer added only the three monitor packages
+and their `flock` dependency. All existing packages, protected configuration,
+the sing-box process and monitor enabled/running state were unchanged. Every
+pre-install sample survived migration; the new collector then measured both
+direct controls successfully. The Russian translation was verified in LuCI.
+This check exposed a cached stylesheet in a previously open tab; revision 2
+adds a release-specific stylesheet URL and a regression check.
+
 Automated coverage includes key discovery, credential-safe identities, key
 reordering/replacement, migration, API errors, bounded history, chart statistics,
 translations and updater behavior. Run the current suites using the commands in

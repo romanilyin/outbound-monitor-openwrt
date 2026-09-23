@@ -340,6 +340,16 @@ test('DNS v2 adds UDP and TCP without dropping encrypted transports or v1 rows',
   assert.match(table.textContent, /Interface DNS · IPv6 Partial result/);
 });
 
+test('reloading after an update changes the stylesheet cache key', () => {
+  const href = current => {
+    const { view } = makeView(() => Promise.resolve({}));
+    const root = view.render({ data: { version: 1, now: 1000, keys: [] }, updater: { ...idleUpdater, current } });
+    return descendants(root).find(node => node.tag === 'link').attributes.href;
+  };
+  assert.equal(href('2026-9-23-1'), href('2026-9-23-1'));
+  assert.notEqual(href('2026-9-23-1'), href('2026-9-23-2'));
+});
+
 test('updater gates install, polls small status, and offers reload only after installation', async () => {
   const calls = [];
   let state = idleUpdater;
