@@ -34,6 +34,17 @@ direct controls successfully. The Russian translation was verified in LuCI.
 This check exposed a cached stylesheet in a previously open tab; revision 2
 adds a release-specific stylesheet URL and a regression check.
 
+The subsequent button update to `2026-9-23-2` also succeeded. The installed
+version and latest GitHub release agree; the three APK files total 31,708 bytes.
+All 14 release assets passed checksum verification with their published names.
+Only the three monitor packages changed during this update. All chart IDs,
+pre-update samples, protected configuration and the sing-box process were
+preserved; each of the three keys had 25 samples after the first new collection.
+The page's own reload button refreshed the original browser tab, which loaded
+`style.css?v=2026-9-23-2`, displayed the blue legend and all three charts, and
+reported no JavaScript errors. The final UI/i18n suite passed 25 tests; both
+SDK package builds and the release workflow passed on GitHub Actions.
+
 Automated coverage includes key discovery, credential-safe identities, key
 reordering/replacement, migration, API errors, bounded history, chart statistics,
 translations and updater behavior. Run the current suites using the commands in
