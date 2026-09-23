@@ -1,0 +1,27 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -eu
+umask 077
+case "${1:-}" in
+	daemon)
+		while :; do
+			started=$(date +%s)
+			"$0" collect || logger -t outbound-monitor 'Collection failed; previous history preserved'
+			interval=$(ucode /usr/share/outbound-monitor/main.uc interval)
+			elapsed=$(( $(date +%s) - started ))
+			wait=$(( interval - elapsed ))
+			[ "$wait" -gt 0 ] || wait=1
+			sleep "$wait" &
+			trap 'kill "$!" 2>/dev/null || true; exit 0' TERM INT
+			wait "$!" || true
+		done
+		;;
+	collect)
+		mkdir -p /tmp/outbound-monitor
+		exec 9>/tmp/outbound-monitor/lock
+		flock -n 9 || exit 0
+		exec ucode /usr/share/outbound-monitor/main.uc collect
+		;;
+	status) exec ucode /usr/share/outbound-monitor/main.uc status "${2:-24}" ;;
+	*) echo 'Usage: outbound-monitor {daemon|collect|status [hours]}' >&2; exit 1 ;;
+esac

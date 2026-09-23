@@ -1,0 +1,6 @@
+.tools/
+.local/
+dist/
+__pycache__/
+*.pyc
+.env

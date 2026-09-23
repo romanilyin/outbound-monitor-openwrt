@@ -1,0 +1,7 @@
+config monitor 'main'
+	option enabled '1'
+	option interval '300'
+	option retention_days '7'
+	option timeout '8'
+	option test_url 'https://www.gstatic.com/generate_204'
+	option sing_box_config '/etc/sing-box/config.json'

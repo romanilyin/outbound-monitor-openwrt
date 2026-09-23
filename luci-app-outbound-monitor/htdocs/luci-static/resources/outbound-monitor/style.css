@@ -1,0 +1,58 @@
+.om-page { max-width: 1180px; --om-ok: #18786c; --om-failed: #c23b40; --om-muted: #687581; --om-grid: rgba(110, 127, 145, .2); --om-error-band: rgba(194, 59, 64, .05); }
+html[data-darkmode="true"] .om-page { --om-ok: #65d5be; --om-failed: #ff9396; --om-muted: #aebbc6; --om-grid: rgba(174, 192, 210, .24); --om-error-band: rgba(242, 135, 139, .09); }
+.om-header, .om-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.om-header { margin-bottom: 1.25rem; flex-wrap: wrap; }
+.om-header h2 { margin: 0 0 .35rem; }
+.om-header p { margin: 0; }
+.om-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.om-controls label { display: flex; align-items: center; gap: .5rem; margin: 0 .65rem 0 0; }
+.om-controls select { min-width: 7rem; }
+.om-export-label { color: var(--om-muted); font-size: .85rem; }
+.om-muted { color: var(--om-muted); font-size: .86rem; }
+.om-meta { margin: .4rem 0; overflow-wrap: anywhere; }
+.om-status { margin-bottom: 1rem; }
+.om-alert, .om-advice { border-left: 3px solid var(--om-failed); background: rgba(194, 59, 64, .07); padding: .7rem .9rem; border-radius: 0 5px 5px 0; overflow-wrap: anywhere; }
+.om-legend { display: flex; gap: .5rem 1.25rem; flex-wrap: wrap; font-size: .85rem; }
+.om-legend-success { color: var(--om-ok); }
+.om-legend-failure { color: var(--om-failed); }
+.om-footnote { color: var(--om-muted); font-size: .78rem; line-height: 1.5; margin: .6rem 0; }
+.om-section-title { font-size: .95rem; margin: 1.6rem 0 .6rem; }
+.om-card { border: 1px solid rgba(110, 127, 145, .25); border-radius: 9px; padding: 1.15rem; margin-bottom: 1rem; background: rgba(110, 127, 145, .025); }
+.om-card-heading h3 { font-size: 1.12rem; margin: 0 0 .25rem; overflow-wrap: anywhere; }
+.om-key-details { overflow-wrap: anywhere; }
+.om-fingerprint { background: transparent; padding: 0; font-size: .72rem; color: var(--om-muted); }
+.om-badge { white-space: nowrap; border-radius: 5px; padding: .28rem .6rem; font-size: .77rem; font-weight: 600; line-height: 1.5; }
+.om-ok { color: var(--om-ok); background: rgba(24, 120, 108, .1); }
+.om-failed { color: var(--om-failed); background: rgba(194, 59, 64, .1); }
+.om-unknown, .om-archive { color: var(--om-muted); background: rgba(110, 127, 145, .12); }
+.om-archived { border-style: dashed; }
+.om-groups { margin: .5rem 0; overflow-wrap: anywhere; }
+.om-note { color: var(--om-muted); margin: .7rem 0; font-size: .85rem; }
+.om-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0 .5rem; }
+.om-metric { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.om-metric > span, .om-metric small { font-size: .76rem; color: var(--om-muted); }
+.om-metric strong { font-size: 1.45rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.om-chart-scroll { width: 100%; min-width: 0; }
+.om-chart svg { display: block; width: 100%; min-width: 0; height: auto; overflow: visible; }
+.om-chart svg:focus-visible { outline: 2px solid var(--om-ok); outline-offset: 2px; }
+.om-axis { fill: var(--om-muted); font-size: 12px; font-family: inherit; }
+.om-axis-title { fill: var(--om-muted); font-size: 12px; font-family: inherit; }
+.om-error-label { fill: var(--om-failed); }
+.om-grid { stroke: var(--om-grid); stroke-width: 1; }
+.om-axis-break { stroke: var(--om-muted); stroke-width: 1; fill: none; }
+.om-error-band { fill: var(--om-error-band); }
+.om-trace { fill: none; stroke: var(--om-ok); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.om-ok-point { fill: var(--om-ok); }
+.om-failed-point { fill: var(--om-failed); }
+.om-cursor { stroke: var(--om-muted); stroke-width: 1; stroke-dasharray: 3 4; pointer-events: none; }
+.om-chart-hint { min-height: 1.5em; margin: .25rem 0; font-size: .8rem; color: var(--om-muted); }
+.om-times { display: flex; flex-wrap: wrap; gap: .35rem 1.5rem; border-top: 1px solid rgba(110, 127, 145, .18); padding-top: .7rem; font-size: .75rem; }
+.om-empty { border: 1px dashed rgba(110, 127, 145, .4); border-radius: 8px; padding: 2rem 1rem; text-align: center; color: var(--om-muted); margin: 1rem 0; }
+@media (max-width: 600px) {
+	.om-card { padding: .8rem; }
+	.om-card-heading { flex-direction: column; gap: .5rem; }
+	.om-metrics { gap: .6rem; }
+	.om-metric strong { font-size: 1.15rem; }
+	.om-controls { width: 100%; }
+	.om-axis, .om-axis-title { font-size: 20px; }
+}
