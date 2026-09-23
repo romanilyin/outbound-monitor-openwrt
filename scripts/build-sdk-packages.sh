@@ -28,8 +28,10 @@ CONFIG_PACKAGE_luci-app-outbound-monitor=m
 CONFIG_PACKAGE_luci-i18n-outbound-monitor-ru=m
 EOF
 make defconfig > "$WORK/build-$VERSION.log" 2>&1
-if ! make -j2 package/outbound-monitor/compile package/luci-app-outbound-monitor/compile V=s >> "$WORK/build-$VERSION.log" 2>&1; then
- tail -n 160 "$WORK/build-$VERSION.log"
- exit 1
-fi
+for package in outbound-monitor luci-app-outbound-monitor; do
+ if ! make -j2 "package/$package/compile" V=s >> "$WORK/build-$VERSION.log" 2>&1; then
+  tail -n 160 "$WORK/build-$VERSION.log"
+  exit 1
+ fi
+done
 python3 "$ROOT/scripts/collect-packages.py" "$PWD/bin/packages" "$ROOT/dist/$FORMAT" "$FORMAT"

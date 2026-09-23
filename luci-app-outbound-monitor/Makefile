@@ -9,3 +9,5 @@ LUCI_DEPENDS:=+outbound-monitor +luci-base +rpcd-mod-ucode
 LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk
+
+# call BuildPackage - package scanner signature (implementation is in luci.mk)
