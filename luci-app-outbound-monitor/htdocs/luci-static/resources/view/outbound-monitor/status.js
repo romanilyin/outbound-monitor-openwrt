@@ -484,8 +484,8 @@ return view.extend({
 			message = _('An update is available.');
 		else if (state && state.latest)
 			message = _('No newer stable release.');
-		this.checkButton = E('button', { 'class': 'cbi-button', disabled: busy, click: function() { return self.refreshUpdater('check'); } }, _('Check for updates'));
-		this.updateButton = E('button', { 'class': 'cbi-button cbi-button-action', disabled: busy || !state || !state.available, click: function() { return self.refreshUpdater('install'); } }, _('Update from GitHub'));
+		this.checkButton = E('button', { 'class': 'cbi-button', disabled: busy ? '' : null, click: function() { return self.refreshUpdater('check'); } }, _('Check for updates'));
+		this.updateButton = E('button', { 'class': 'cbi-button cbi-button-action', disabled: busy || !state || !state.available ? '' : null, click: function() { return self.refreshUpdater('install'); } }, _('Update from GitHub'));
 		var actions = [ this.checkButton, this.updateButton ];
 		if (this.reloadNeeded)
 			actions.push(E('button', { 'class': 'cbi-button', click: function() { window.location.reload(); } }, _('Reload page')));

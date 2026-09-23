@@ -169,7 +169,7 @@ class Node {
   constructor(tag, attributes = {}, children = []) {
     this.tag = tag;
     this.attributes = attributes;
-    this.disabled = !!attributes.disabled;
+	this.disabled = Object.prototype.hasOwnProperty.call(attributes, 'disabled') && attributes.disabled != null;
     this.children = [];
     this.replaceChildren(...(Array.isArray(children) ? children : [children]));
   }
