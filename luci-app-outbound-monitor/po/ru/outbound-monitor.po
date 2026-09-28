@@ -266,8 +266,8 @@ msgid "The monitor returned invalid data"
 msgstr "Монитор вернул некорректные данные"
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
-msgid "The positive scale is linear; −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
-msgstr "Выше нуля шкала линейная; −10 показано в отдельной полосе ошибок. Время отображается в часовом поясе браузера. Экспорт содержит полученные данные выбранного периода."
+msgid "The delay scale is logarithmic (including zero). Yellow marks successful probes strictly above the mean plus one population SD for this key in the selected period. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
+msgstr "Шкала задержки логарифмическая (включая ноль). Жёлтым отмечены успешные пробы со значением строго выше среднего плюс одно стандартное отклонение по совокупности для этого ключа за выбранный период. −10 показано в отдельной полосе ошибок. Время отображается в часовом поясе браузера. Экспорт содержит полученные данные выбранного периода."
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "The updater returned invalid data"
@@ -405,6 +405,14 @@ msgstr "Предполагаемых внешних сбоев: %s. Исключ
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "Suspected external failure: −10"
 msgstr "Предполагаемый внешний сбой: −10"
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 1 SD"
+msgstr "Выше среднего + 1 СО"
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 1 SD for this period"
+msgstr "Выше среднего + 1 СО за этот период"
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "Blue failures suggest an external network or ISP issue; the cause is not confirmed."

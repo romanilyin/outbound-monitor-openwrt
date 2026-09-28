@@ -1,12 +1,12 @@
 ## English
 
-This revision discovers standalone proxy keys, selector-only connections and podkop VPN interface sections such as WARP. Interface names appear in cards and comparison rows. Plain Internet direct outbounds remain excluded. Process tracking ignores short-lived `sing-box check`/`version` helpers and distinguishes process, JSON configuration and podkop-setting changes in collector errors. Existing key IDs and history are preserved when upgrading without restarting sing-box.
+This revision replaces the linear latency axis with a logarithmic scale. Successful probes above the mean plus one population standard deviation for the selected period are highlighted in yellow. The separate −10 failure band, measurements, exports and comparison statistics are unchanged. Existing key IDs and history are preserved during the upgrade.
 
 Lightweight availability and HTTP latency monitoring for sing-box/podkop connections, including standalone keys and VPN interface sections.
 
 - Stable SHA-256 chart IDs from credential-bearing outbound configuration without the top-level tag: reordering preserves history and changed credentials create a new history. The observed podkop link hash is saved separately as metadata, never used to assign history; raw links are not stored.
 - LuCI comparison table with VPN failure percentage, mean delay, population variance and standard deviation. Latency metrics use successful samples only; unknown and suspected common network failures are excluded.
-- LuCI charts with red VPN failures and blue suspected common network failures at **−10**, 1h/6h/24h/7d history and JSON/CSV export.
+- LuCI charts with a logarithmic positive latency axis, yellow high-latency outliers, red VPN failures and blue suspected common network failures at **−10**, 1h/6h/24h/7d history and JSON/CSV export.
 - Two direct HTTPS controls distinguish the pattern where both controls and all VPN probes fail; a surviving VPN probe produces a mixed result. Blue failures do not count against a key's failure rate or replacement recommendation.
 - Optional DNS diagnosis through an already installed IPRegion after both direct controls fail, including mixed results. Enabled by `dns_check=1`, using available IPRegion resolvers/transports (UDP/TCP and DoT/DoH where supported), isolated runtime state, a two-second request timeout, no retries and a 25-second cap. No IPRegion dependency or configuration changes.
 - Latest DNS check time and compact resolver results; JSON exports include at most 128 detailed network events within the configured retention period (up to seven days).
@@ -19,13 +19,13 @@ Use `install.sh` from the repository for automatic package-manager detection. Hi
 
 ## Русский
 
-В этой ревизии обнаруживаются одиночные прокси-ключи, группы только с selector и VPN-секции podkop с привязкой к интерфейсу, например WARP. Интерфейс виден в карточке и сравнении; обычный прямой выход в Интернет исключён. Проверка процесса игнорирует кратковременные команды `sing-box check`/`version`, а ошибки различают смену процесса, JSON-конфигурации и настроек podkop. Обновление сохраняет ID и историю ключей без перезапуска sing-box.
+В этой ревизии линейная шкала задержки заменена логарифмической. Успешные проверки с задержкой выше среднего плюс одно генеральное стандартное отклонение за выбранный период выделяются жёлтым. Отдельная полоса отказов на −10, измерения, экспорт и статистика сравнения не меняются. Обновление сохраняет ID и историю ключей.
 
 Лёгкий монитор доступности и HTTP-задержки подключений sing-box/podkop, включая одиночные ключи и VPN-секции с интерфейсом.
 
 - Устойчивые SHA-256 ID графиков по конфигурации outbound с учётными данными без верхнеуровневого тега: перестановка сохраняет историю, а изменение учётных данных создаёт новую. Наблюдаемый хеш ссылки podkop сохраняется отдельно как метаданные и не назначает историю; исходные ссылки не сохраняются.
 - Таблица сравнения LuCI с процентом отказов VPN, средней задержкой, генеральной дисперсией и стандартным отклонением. Метрики задержки учитывают только успешные пробы; неизвестные и вероятные общие сетевые сбои исключаются.
-- Графики LuCI с красными отказами VPN и синими вероятными общими сетевыми сбоями на **−10**, история 1ч/6ч/24ч/7д и экспорт JSON/CSV.
+- Графики LuCI с логарифмической шкалой положительной задержки, жёлтыми выбросами, красными отказами VPN и синими вероятными общими сетевыми сбоями на **−10**, история 1ч/6ч/24ч/7д и экспорт JSON/CSV.
 - Две прямые HTTPS-пробы выделяют одновременный отказ обеих контрольных и всех VPN-проверок; при успешной VPN-пробе результат смешанный. Синие отказы не ухудшают процент отказов ключа и не вызывают рекомендацию заменить его.
 - Необязательная DNS-диагностика через уже установленный IPRegion при отказе обеих прямых проверок, в том числе при смешанном результате. Включается `dns_check=1`: доступные резолверы/транспорты IPRegion (UDP/TCP и DoT/DoH при поддержке), отдельные временные данные, тайм-аут запроса две секунды, без повторов, общий лимит 25 секунд. IPRegion не добавляется в зависимости, его настройки не меняются.
 - Время последней DNS-проверки и краткие результаты резолверов; JSON-экспорт включает не более 128 подробных сетевых событий за выбранный срок хранения (до семи дней).

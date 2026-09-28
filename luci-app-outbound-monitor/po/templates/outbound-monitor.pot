@@ -264,7 +264,7 @@ msgid "The monitor returned invalid data"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
-msgid "The positive scale is linear; −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
+msgid "The delay scale is logarithmic (including zero). Yellow marks successful probes strictly above the mean plus one population SD for this key in the selected period. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
@@ -402,6 +402,14 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "Suspected external failure: −10"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 1 SD"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 1 SD for this period"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js

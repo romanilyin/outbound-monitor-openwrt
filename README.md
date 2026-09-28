@@ -20,7 +20,7 @@ The original source installation was tested on **OpenWrt 25.12.4**. Release buil
 
 ## What it does
 
-- Separate SVG charts for each outbound: HTTP latency in milliseconds, red VPN probe failures at **−10**, and blue points at **−10** for suspected common network failures.
+- Separate SVG charts for each outbound: a logarithmic scale for positive HTTP latency in milliseconds, yellow points above the successful-probe mean plus one population standard deviation for the selected period, red VPN probe failures at **−10**, and blue points at **−10** for suspected common network failures.
 - History for 1 hour, 6 hours, 24 hours or 7 days; inspect points with a mouse, touch or arrow keys, and export the selected period as JSON or CSV.
 - A comparison table above the charts: VPN failure percentage, mean HTTP delay, population variance and standard deviation for the selected period.
 - Successful-probe percentage, median latency and time of the last successful probe.

@@ -133,8 +133,37 @@ test('zero, empty, and huge delay scales stay finite with distinct failure band'
     assert.ok(chart.points[0].y <= chart.zero);
     assert.ok(chart.y(-10) - chart.y(0) >= 25);
     assert.ok(helpers.tickLabel(chart.maximum).length < 14);
+    assert.equal(chart.ticks[0], 0);
+    assert.equal(chart.ticks[chart.ticks.length - 1], chart.maximum);
+    assert.ok(chart.ticks.every(tick => Number.isFinite(tick) && Number.isFinite(chart.y(tick))));
+    assert.ok(chart.ticks.every((tick, index) => !index || tick > chart.ticks[index - 1]));
   }
   assert.ok(Number.isFinite(helpers.chartGeometry([], 0, 0, 300).x(0)));
+});
+
+test('one logarithmic delay axis compresses decades and retains zero and failure ticks', () => {
+  const chart = helpers.chartGeometry([0, 1, 10, 100, 1000].map((delay, index) => [index * 300, 1, delay]), 0, 1200, 300);
+  assert.deepEqual(plain(chart.ticks), [0, 10, 100, 1000]);
+  assert.equal(chart.y(0), chart.zero);
+  assert.equal(chart.y(1000), chart.top);
+  const lowDecade = chart.y(10) - chart.y(100);
+  const highDecade = chart.y(100) - chart.y(1000);
+  assert.ok(Math.abs(lowDecade - highDecade) < 3);
+  assert.equal(chart.y(-10), chart.failure);
+  assert.ok(chart.y(-10) > chart.y(0));
+});
+
+test('yellow outliers use only successes in the selected period and a strict mean plus population SD threshold', () => {
+  const history = [[0, 1, 1000], [300, 1, 10], [600, 1, 10], [900, 1, 10], [1200, 1, 50], [1500, 0, null], [1800, -2, null]];
+  const selected = helpers.samplesInRange(history, 300, 1800);
+  const chart = helpers.chartGeometry(selected, 300, 1800, 300);
+  assert.ok(chart.outlierThreshold > 10 && chart.outlierThreshold < 50);
+  assert.deepEqual(plain(chart.points.map(point => [point.sample[0], point.outlier])), [[300, false], [600, false], [900, false], [1200, true], [1500, false], [1800, false]]);
+  assert.match(helpers.sampleLabel(selected[3], true), /Above mean \+ 1 SD/);
+  assert.doesNotMatch(helpers.sampleLabel(selected[0], false), /Above mean/);
+  const equal = helpers.chartGeometry([[300, 1, 0], [600, 1, 2]], 0, 900, 300);
+  assert.equal(equal.outlierThreshold, 2);
+  assert.equal(equal.points[1].outlier, false);
 });
 
 test('external failures stay distinct from unknown gaps and are plotted at minus ten', () => {

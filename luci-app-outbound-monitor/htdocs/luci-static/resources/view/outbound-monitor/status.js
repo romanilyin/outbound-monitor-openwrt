@@ -157,11 +157,22 @@ function chartGeometry(samples, from, to, interval) {
 	var maximum = samples.reduce(function(value, sample) { return sample[1] === 1 ? Math.max(value, sample[2]) : value; }, 0);
 	var top = Math.max(10, maximum);
 	var unit = Math.pow(10, Math.floor(Math.log(top) / Math.LN10));
-	var rounded = Math.ceil(top / unit) * unit;
+	var ratio = top / unit;
+	var rounded = (ratio <= 1 ? 1 : ratio <= 2 ? 2 : ratio <= 5 ? 5 : 10) * unit;
 	top = finite(rounded) ? rounded : top;
-	var geometry = { left: 112, right: 766, top: 28, zero: 178, failure: 208, bottom: 252, maximum: top, paths: [], points: [] };
+	var stats = statistics(samples, interval);
+	var geometry = { left: 112, right: 766, top: 28, zero: 178, failure: 208, bottom: 252, maximum: top, ticks: [ 0 ], outlierThreshold: stats.mean === null ? null : stats.mean + stats.stddev, paths: [], points: [] };
+	var logTop = Math.log1p(top);
+	[ 1 / 3, 2 / 3 ].forEach(function(fraction) {
+		var exponent = Math.round(Math.log(Math.expm1(logTop * fraction)) / Math.LN10);
+		var tick = Math.pow(10, exponent);
+		if (finite(tick) && tick > 0 && tick < top && geometry.ticks.indexOf(tick) < 0)
+			geometry.ticks.push(tick);
+	});
+	geometry.ticks.push(top);
+	geometry.ticks.sort(function(a, b) { return a - b; });
 	geometry.x = function(time) { return geometry.left + (time - from) / Math.max(1, to - from) * (geometry.right - geometry.left); };
-	geometry.y = function(delay) { return delay === -10 ? geometry.failure : geometry.zero - delay / top * (geometry.zero - geometry.top); };
+	geometry.y = function(delay) { return delay === -10 ? geometry.failure : geometry.zero - Math.log1p(delay) / logTop * (geometry.zero - geometry.top); };
 	var path = [];
 	samples.forEach(function(sample, index) {
 		var previous = samples[index - 1];
@@ -171,7 +182,7 @@ function chartGeometry(samples, from, to, interval) {
 			path = [];
 		}
 		if (sample[1] !== -1) {
-			var point = { x: geometry.x(sample[0]), y: geometry.y(sample[1] === 1 ? sample[2] : -10), sample: sample };
+			var point = { x: geometry.x(sample[0]), y: geometry.y(sample[1] === 1 ? sample[2] : -10), sample: sample, outlier: sample[1] === 1 && sample[2] > geometry.outlierThreshold };
 			geometry.points.push(point);
 			if (sample[1] === 1)
 				path.push(point);
@@ -186,8 +197,8 @@ function tickLabel(value) {
 	return value >= 100000 ? value.toExponential(1) : number(value);
 }
 
-function sampleLabel(sample) {
-	return dateTime(sample[0]) + ' · ' + (sample[1] === 1 ? _('%s ms').format(number(sample[2])) : sample[1] === 0 ? _('probe failed (−10)') : sample[1] === -2 ? _('external network failure suspected (−10)') : _('no result'));
+function sampleLabel(sample, outlier) {
+	return dateTime(sample[0]) + ' · ' + (sample[1] === 1 ? _('%s ms').format(number(sample[2])) + (outlier ? ' · ' + _('Above mean + 1 SD for this period') : '') : sample[1] === 0 ? _('probe failed (−10)') : sample[1] === -2 ? _('external network failure suspected (−10)') : _('no result'));
 }
 
 function svgNode(tag, attributes, children) {
@@ -204,7 +215,7 @@ function renderChart(samples, from, to, interval, label) {
 		svgNode('text', { x: g.left, y: 15, 'class': 'om-axis-title' }, [ _('HTTP, ms') ]),
 		svgNode('rect', { x: g.left, y: 194, width: g.right - g.left, height: 28, 'class': 'om-error-band' })
 	]);
-	[ 0, g.maximum / 2, g.maximum ].forEach(function(value) {
+	g.ticks.forEach(function(value) {
 		var y = g.y(value);
 		chart.appendChild(svgNode('line', { x1: g.left, x2: g.right, y1: y, y2: y, 'class': 'om-grid' }));
 		chart.appendChild(svgNode('text', { x: g.left - 12, y: y + 4, 'text-anchor': 'end', 'class': 'om-axis' }, [ tickLabel(value) ]));
@@ -224,7 +235,7 @@ function renderChart(samples, from, to, interval, label) {
 			chart.appendChild(svgNode('polyline', { points: path.map(function(point) { return point.x + ',' + point.y; }).join(' '), 'class': 'om-trace' }));
 	});
 	g.points.forEach(function(point) {
-		chart.appendChild(svgNode('circle', { cx: point.x, cy: point.y, r: point.sample[1] === 1 ? 3.6 : 4.5, 'class': point.sample[1] === 0 ? 'om-failed-point' : point.sample[1] === -2 ? 'om-upstream-point' : 'om-ok-point' }, [ svgNode('title', {}, [ sampleLabel(point.sample) ]) ]));
+		chart.appendChild(svgNode('circle', { cx: point.x, cy: point.y, r: point.sample[1] === 1 ? 3.6 : 4.5, 'class': point.sample[1] === 0 ? 'om-failed-point' : point.sample[1] === -2 ? 'om-upstream-point' : point.outlier ? 'om-outlier-point' : 'om-ok-point' }, [ svgNode('title', {}, [ sampleLabel(point.sample, point.outlier) ]) ]));
 	});
 	var cursor = svgNode('line', { x1: 0, x2: 0, y1: g.top, y2: 222, 'class': 'om-cursor', visibility: 'hidden' });
 	chart.appendChild(cursor);
@@ -234,7 +245,7 @@ function renderChart(samples, from, to, interval, label) {
 		cursor.setAttribute('x1', g.x(sample[0]));
 		cursor.setAttribute('x2', g.x(sample[0]));
 		cursor.setAttribute('visibility', 'visible');
-		hint.textContent = sampleLabel(sample);
+		hint.textContent = sampleLabel(sample, sample[1] === 1 && sample[2] > g.outlierThreshold);
 	}
 	chart.setAttribute('tabindex', samples.length ? '0' : '-1');
 	chart.setAttribute('aria-description', _('Use the left and right arrow keys to select a probe.'));
@@ -425,8 +436,8 @@ return view.extend({
 			E('div', { 'class': 'om-header' }, [ E('div', {}, [ E('h2', {}, _('Outbound Monitor')), E('p', { 'class': 'om-muted' }, _('HTTP probe history for each key')) ]), E('div', { 'class': 'om-controls' }, [ E('label', {}, [ _('Period'), ' ', selector ]), E('span', { 'class': 'om-export-label' }, _('Export:')), this.exportJson, this.exportCsv ]) ]),
 			this.updaterNode,
 			this.statusNode,
-			E('div', { 'class': 'om-legend' }, [ E('span', { 'class': 'om-legend-success' }, '● ' + _('HTTP delay, ms')), E('span', { 'class': 'om-legend-failure' }, '● ' + _('VPN failure: −10')), E('span', { 'class': 'om-upstream-text' }, '● ' + _('Suspected external failure: −10')), E('span', {}, _('Gaps mean unknown or missing probes')) ]),
-			E('p', { 'class': 'om-footnote' }, _('The positive scale is linear; −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period.')),
+			E('div', { 'class': 'om-legend' }, [ E('span', { 'class': 'om-legend-success' }, '● ' + _('HTTP delay, ms')), E('span', { 'class': 'om-legend-outlier' }, '● ' + _('Above mean + 1 SD')), E('span', { 'class': 'om-legend-failure' }, '● ' + _('VPN failure: −10')), E('span', { 'class': 'om-upstream-text' }, '● ' + _('Suspected external failure: −10')), E('span', {}, _('Gaps mean unknown or missing probes')) ]),
+			E('p', { 'class': 'om-footnote' }, _('The delay scale is logarithmic (including zero). Yellow marks successful probes strictly above the mean plus one population SD for this key in the selected period. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period.')),
 			E('p', { 'class': 'om-footnote' }, _('Blue failures suggest an external network or ISP issue; the cause is not confirmed.')),
 			this.contentNode
 		]);
