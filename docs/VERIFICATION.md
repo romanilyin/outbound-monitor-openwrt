@@ -1,4 +1,4 @@
-# Router verification — 2026-09-23
+# Router verification — 2026-09-23 and 2026-09-28
 
 Tested on OpenWrt 25.12.4, Cudy WR3000P v1 (mediatek/filogic),
 with sing-box-extended 1.12.17. OpenWrt 24.10 is an SDK build target;
@@ -82,3 +82,32 @@ translations and updater behavior. Run the current suites using the commands in
 A real seven-day soak and router reboot are intentionally outside this check.
 RAM retention is tested with synthetic timestamps. Active delay probes update
 sing-box URLTest latency history; see the README for effects and identity limits.
+
+## Revision 2026-9-28-1: logarithmic latency charts
+
+The positive latency axis now uses a logarithmic transform with a zero tick;
+the −10 failure band remains separate. Successful points strictly above the
+mean plus one population standard deviation for that key in the selected
+period are yellow. Unit tests cover zero and extreme delays, log spacing,
+selected-period success-only thresholds and exact-threshold behavior. An
+independent focused review found no actionable issue. The local UI/i18n suite
+passed all 28 tests; static checks, the release workflow's backend checks and
+both OpenWrt SDK package builds passed.
+
+All 14 published assets matched `SHA256SUMS`; the three APK packages total
+33,973 bytes. The existing OpenWrt 25.12.4 router was upgraded from
+`2026-9-23-3` through the LuCI update button. Before/after snapshots confirmed
+that only the three monitor packages changed. The sing-box process and hashes
+of podkop, sing-box, network, firewall, DHCP and IPRegion configuration were
+unchanged. Monitor settings and enabled/running state, four key identities and
+all pre-upgrade samples were preserved; each key had 236 samples immediately
+after the upgrade, and the direct controls still succeeded.
+
+After reloading LuCI, the page loaded `style.css?v=2026-9-28-1` and displayed
+four charts, a logarithmic axis with 0/10/100/500 ms ticks on one chart, 56
+yellow samples across the selected 24-hour histories, and the separate −10
+band. The yellow CSS fill resolved to `rgb(255, 210, 77)` in the active dark
+theme. No browser JavaScript errors were logged after the upgrade; two LuCI
+access-denied errors preceded a fresh login and the update. Runtime behavior
+on the separately reported 192.168.1.1 router remains unverified because that
+router is not currently accessible.
