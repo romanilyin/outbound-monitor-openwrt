@@ -111,3 +111,33 @@ theme. No browser JavaScript errors were logged after the upgrade; two LuCI
 access-denied errors preceded a fresh login and the update. Runtime behavior
 on the separately reported 192.168.1.1 router remains unverified because that
 router is not currently accessible.
+
+## Revision 2026-9-28-2: fitted logarithmic ranges and 3-SD highlights
+
+Each chart now fits the logarithmic delay axis to the minimum and maximum
+successful samples in the selected period, with 5% padding in logarithmic
+space. A narrow 100–100.1 ms test range occupies more than 120 SVG pixels;
+zero, single-value and extreme floating-point cases remain finite. The
+median card shows median ± population standard deviation of successful
+probes. Yellow samples exceed mean + 1 SD, orange samples exceed mean + 3 SD,
+and the separate −10 failure band is unchanged. Focused independent review
+found no actionable issue. All 32 local UI/i18n tests passed, as did static
+checks, backend checks and both SDK builds in the release workflow.
+
+All 14 published assets matched `SHA256SUMS`; the three APK packages total
+34,689 bytes. The existing OpenWrt 25.12.4 router was upgraded from
+`2026-9-28-1` through LuCI. Before/after snapshots confirmed that only the
+three monitor packages changed. Protected podkop, sing-box, network,
+firewall, DHCP and IPRegion configuration hashes, the sing-box process,
+monitor settings and enabled/running state, four key identities and all
+pre-upgrade samples remained unchanged. All four keys had 243 samples after
+the upgrade, and direct controls still succeeded.
+
+LuCI loaded `style.css?v=2026-9-28-2`, displayed four charts and median ± SD
+values such as `169 ± 33,8 мс` and `153 ± 15,6 мс`. Observed positive axes
+used 163–477 ms, 138–2,044 ms, 114–243 ms and 141–1,732 ms ranges; no
+positive axis was anchored at zero. Across the 24-hour selection, 42 yellow
+and 15 orange samples were visible, alongside the unchanged −10 band. The
+active dark theme resolved yellow to `rgb(255, 210, 77)` and orange to
+`rgb(255, 159, 85)`. No browser JavaScript errors were logged after loading
+the new page. The second router remains inaccessible for hardware testing.
