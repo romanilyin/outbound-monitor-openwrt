@@ -8,12 +8,17 @@ msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 #, c-format
-msgid "%s — HTTP delay, ms. Failures are at −10; unknown and missing probes break the line."
+msgid "%s — logarithmic HTTP delay between observed minimum and maximum, ms. Failures are at −10; unknown and missing probes break the line."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
 #, c-format
 msgid "%s ms"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+#, c-format
+msgid "%s ± %s ms"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
@@ -256,7 +261,7 @@ msgid "Successful probes"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
-msgid "successful probes in this period"
+msgid "median ± population SD of successful probes"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
@@ -264,7 +269,7 @@ msgid "The monitor returned invalid data"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
-msgid "The delay scale is logarithmic (including zero). Yellow marks successful probes strictly above the mean plus one population SD for this key in the selected period. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
+msgid "The logarithmic delay scale spans the successful minimum and maximum for each key in the selected period, with a small margin. Yellow marks successes strictly above mean + 1 population SD; orange marks successes strictly above mean + 3 population SD. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
@@ -409,7 +414,15 @@ msgid "Above mean + 1 SD"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 3 SD"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
 msgid "Above mean + 1 SD for this period"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/outbound-monitor/status.js
+msgid "Above mean + 3 SD for this period"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/outbound-monitor/status.js

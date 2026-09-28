@@ -20,10 +20,10 @@ The original source installation was tested on **OpenWrt 25.12.4**. Release buil
 
 ## What it does
 
-- Separate SVG charts for each outbound: a logarithmic scale for positive HTTP latency in milliseconds, yellow points above the successful-probe mean plus one population standard deviation for the selected period, red VPN probe failures at **−10**, and blue points at **−10** for suspected common network failures.
+- Separate SVG charts for each outbound: a logarithmic scale fitted to the minimum and maximum successful HTTP latency in the selected period with a small margin; yellow points above the mean plus one population standard deviation and orange points above three standard deviations. Red VPN probe failures and blue suspected common network failures use a separate **−10** band.
 - History for 1 hour, 6 hours, 24 hours or 7 days; inspect points with a mouse, touch or arrow keys, and export the selected period as JSON or CSV.
 - A comparison table above the charts: VPN failure percentage, mean HTTP delay, population variance and standard deviation for the selected period.
-- Successful-probe percentage, median latency and time of the last successful probe.
+- Successful-probe percentage, median latency shown with the population standard deviation of successful probes (for example, `166 ± 4.6 ms`), and time of the last successful probe.
 - A recommendation to check or replace an outbound after three consecutive failures.
 - Distinct states for API errors, missing measurements and stale data.
 - Discovery of standalone proxy outbounds, URLTest and selector groups, including nested groups, and matching interface-bound podkop VPN outbounds. Stable hashes preserve history when podkop links change positions and archive a replaced link independently.

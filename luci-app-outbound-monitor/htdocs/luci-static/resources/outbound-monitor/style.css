@@ -1,5 +1,5 @@
-.om-page { max-width: 1180px; --om-ok: #18786c; --om-outlier: #a66a00; --om-failed: #c23b40; --om-upstream: #2467b3; --om-muted: #687581; --om-grid: rgba(110, 127, 145, .2); --om-error-band: rgba(194, 59, 64, .05); }
-html[data-darkmode="true"] .om-page { --om-ok: #65d5be; --om-outlier: #ffd24d; --om-failed: #ff9396; --om-upstream: #88bfff; --om-muted: #aebbc6; --om-grid: rgba(174, 192, 210, .24); --om-error-band: rgba(242, 135, 139, .09); }
+.om-page { max-width: 1180px; --om-ok: #18786c; --om-outlier: #a66a00; --om-extreme: #bc4f00; --om-failed: #c23b40; --om-upstream: #2467b3; --om-muted: #687581; --om-grid: rgba(110, 127, 145, .2); --om-error-band: rgba(194, 59, 64, .08); }
+html[data-darkmode="true"] .om-page { --om-ok: #65d5be; --om-outlier: #ffd24d; --om-extreme: #ff9f55; --om-failed: #ff9396; --om-upstream: #88bfff; --om-muted: #aebbc6; --om-grid: rgba(174, 192, 210, .24); --om-error-band: rgba(242, 135, 139, .13); }
 .om-header, .om-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .om-header { margin-bottom: 1.25rem; flex-wrap: wrap; }
 .om-header h2 { margin: 0 0 .35rem; }
@@ -24,6 +24,7 @@ html[data-darkmode="true"] .om-page { --om-ok: #65d5be; --om-outlier: #ffd24d; -
 .om-legend { display: flex; gap: .5rem 1.25rem; flex-wrap: wrap; font-size: .85rem; }
 .om-legend-success { color: var(--om-ok); }
 .om-legend-outlier { color: var(--om-outlier); }
+.om-legend-extreme { color: var(--om-extreme); }
 .om-legend-failure { color: var(--om-failed); }
 .om-upstream-text { color: var(--om-upstream); }
 .om-upstream-note { border-left: 3px solid var(--om-upstream); background: rgba(36, 103, 179, .08); padding: .7rem .9rem; border-radius: 0 5px 5px 0; font-size: .85rem; }
@@ -67,6 +68,7 @@ html[data-darkmode="true"] .om-page { --om-ok: #65d5be; --om-outlier: #ffd24d; -
 .om-trace { fill: none; stroke: var(--om-ok); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .om-ok-point { fill: var(--om-ok); }
 .om-outlier-point { fill: var(--om-outlier); }
+.om-extreme-point { fill: var(--om-extreme); }
 .om-failed-point { fill: var(--om-failed); }
 .om-upstream-point { fill: var(--om-upstream); }
 .om-cursor { stroke: var(--om-muted); stroke-width: 1; stroke-dasharray: 3 4; pointer-events: none; }

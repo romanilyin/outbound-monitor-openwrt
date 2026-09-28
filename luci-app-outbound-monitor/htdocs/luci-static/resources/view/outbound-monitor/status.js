@@ -154,25 +154,54 @@ function keyState(key, now, interval, unavailable) {
 }
 
 function chartGeometry(samples, from, to, interval) {
-	var maximum = samples.reduce(function(value, sample) { return sample[1] === 1 ? Math.max(value, sample[2]) : value; }, 0);
-	var top = Math.max(10, maximum);
-	var unit = Math.pow(10, Math.floor(Math.log(top) / Math.LN10));
-	var ratio = top / unit;
-	var rounded = (ratio <= 1 ? 1 : ratio <= 2 ? 2 : ratio <= 5 ? 5 : 10) * unit;
-	top = finite(rounded) ? rounded : top;
+	var delays = samples.filter(function(sample) { return sample[1] === 1; }).map(function(sample) { return sample[2]; });
+	var minimum = delays.length ? Math.min.apply(null, delays) : 0;
+	var maximum = delays.length ? Math.max.apply(null, delays) : 10;
+	var includesZero = minimum === 0;
+	var transform = includesZero ? Math.log1p : Math.log;
+	var low = transform(minimum), high = transform(maximum);
+	var relative = maximum > minimum && high === low;
+	if (relative) {
+		// Nearby floating-point values can have identical ordinary logarithms.
+		transform = function(delay) { return Math.log1p((delay - minimum) / minimum); };
+		low = 0;
+		high = transform(maximum);
+	}
+	// A little room in logarithmic space keeps the observed extremes inside the plot.
+	var padding = high > low ? (high - low) * 0.05 : includesZero ? 0 : Math.log(1.05);
+	var scaleLow = includesZero ? 0 : low - padding;
+	var scaleHigh = high + (padding || (high === low ? Math.log1p(1) : 0));
+	if (scaleHigh <= scaleLow)
+		scaleHigh = scaleLow + 1;
 	var stats = statistics(samples, interval);
-	var geometry = { left: 112, right: 766, top: 28, zero: 178, failure: 208, bottom: 252, maximum: top, ticks: [ 0 ], outlierThreshold: stats.mean === null ? null : stats.mean + stats.stddev, paths: [], points: [] };
-	var logTop = Math.log1p(top);
-	[ 1 / 3, 2 / 3 ].forEach(function(fraction) {
-		var exponent = Math.round(Math.log(Math.expm1(logTop * fraction)) / Math.LN10);
-		var tick = Math.pow(10, exponent);
-		if (finite(tick) && tick > 0 && tick < top && geometry.ticks.indexOf(tick) < 0)
-			geometry.ticks.push(tick);
-	});
-	geometry.ticks.push(top);
-	geometry.ticks.sort(function(a, b) { return a - b; });
+	var geometry = { left: 112, right: 766, top: 28, zero: 178, failure: 208, bottom: 252, minimum: minimum, maximum: maximum, scaleLow: scaleLow, scaleHigh: scaleHigh, ticks: [ minimum ], outlierThreshold: stats.mean === null ? null : stats.mean + stats.stddev, extremeThreshold: stats.mean === null ? null : stats.mean + 3 * stats.stddev, paths: [], points: [] };
+	if (maximum > minimum) {
+		[ 1 / 3, 2 / 3 ].forEach(function(fraction) {
+			var target = low + (high - low) * fraction;
+			var value = relative ? minimum * (1 + Math.expm1(target)) : includesZero ? Math.expm1(target) : Math.exp(target);
+			var exponent = Math.floor(Math.log(value) / Math.LN10);
+			var choices = [];
+			[ exponent - 1, exponent, exponent + 1 ].forEach(function(power) {
+				[ 1, 2, 5 ].forEach(function(multiple) { choices.push(multiple * Math.pow(10, power)); });
+			});
+			choices = choices.filter(function(candidate) { return finite(candidate) && candidate > minimum && candidate < maximum; });
+			choices.sort(function(a, b) { return Math.abs(transform(a) - target) - Math.abs(transform(b) - target); });
+			var tick = choices.length ? choices[0] : Number(value.toPrecision(3));
+			if (finite(tick) && tick > minimum && tick < maximum && geometry.ticks.indexOf(tick) < 0)
+				geometry.ticks.push(tick);
+		});
+		geometry.ticks.push(maximum);
+		geometry.ticks.sort(function(a, b) { return a - b; });
+	}
 	geometry.x = function(time) { return geometry.left + (time - from) / Math.max(1, to - from) * (geometry.right - geometry.left); };
-	geometry.y = function(delay) { return delay === -10 ? geometry.failure : geometry.zero - Math.log1p(delay) / logTop * (geometry.zero - geometry.top); };
+	geometry.y = function(delay) { return delay === -10 ? geometry.failure : geometry.zero - Math.max(0, Math.min(1, (transform(delay) - scaleLow) / (scaleHigh - scaleLow))) * (geometry.zero - geometry.top); };
+	// Omit crowded ticks, while always retaining the observed minimum and maximum.
+	geometry.ticks = geometry.ticks.filter(function(tick, index, ticks) {
+		return index === 0 || index === ticks.length - 1 || geometry.y(ticks[index - 1]) - geometry.y(tick) >= 28 && geometry.y(tick) - geometry.y(ticks[index + 1]) >= 28;
+	});
+	geometry.tickPrecision = 6;
+	while (geometry.tickPrecision < 17 && geometry.ticks.some(function(tick, index) { return index && tickLabel(tick, geometry.tickPrecision) === tickLabel(geometry.ticks[index - 1], geometry.tickPrecision); }))
+		geometry.tickPrecision++;
 	var path = [];
 	samples.forEach(function(sample, index) {
 		var previous = samples[index - 1];
@@ -182,7 +211,7 @@ function chartGeometry(samples, from, to, interval) {
 			path = [];
 		}
 		if (sample[1] !== -1) {
-			var point = { x: geometry.x(sample[0]), y: geometry.y(sample[1] === 1 ? sample[2] : -10), sample: sample, outlier: sample[1] === 1 && sample[2] > geometry.outlierThreshold };
+			var point = { x: geometry.x(sample[0]), y: geometry.y(sample[1] === 1 ? sample[2] : -10), sample: sample, outlier: sample[1] === 1 && sample[2] > geometry.outlierThreshold, extreme: sample[1] === 1 && sample[2] > geometry.extremeThreshold };
 			geometry.points.push(point);
 			if (sample[1] === 1)
 				path.push(point);
@@ -193,12 +222,13 @@ function chartGeometry(samples, from, to, interval) {
 	return geometry;
 }
 
-function tickLabel(value) {
-	return value >= 100000 ? value.toExponential(1) : number(value);
+function tickLabel(value, precision) {
+	precision = precision || 6;
+	return value >= 100000 || value > 0 && value < 0.01 ? value.toExponential(precision - 1) : value.toLocaleString(userLocale(), { maximumSignificantDigits: precision });
 }
 
-function sampleLabel(sample, outlier) {
-	return dateTime(sample[0]) + ' · ' + (sample[1] === 1 ? _('%s ms').format(number(sample[2])) + (outlier ? ' · ' + _('Above mean + 1 SD for this period') : '') : sample[1] === 0 ? _('probe failed (−10)') : sample[1] === -2 ? _('external network failure suspected (−10)') : _('no result'));
+function sampleLabel(sample, level) {
+	return dateTime(sample[0]) + ' · ' + (sample[1] === 1 ? _('%s ms').format(number(sample[2])) + (level === 3 ? ' · ' + _('Above mean + 3 SD for this period') : level ? ' · ' + _('Above mean + 1 SD for this period') : '') : sample[1] === 0 ? _('probe failed (−10)') : sample[1] === -2 ? _('external network failure suspected (−10)') : _('no result'));
 }
 
 function svgNode(tag, attributes, children) {
@@ -211,14 +241,14 @@ function svgNode(tag, attributes, children) {
 function renderChart(samples, from, to, interval, label) {
 	var g = chartGeometry(samples, from, to, interval);
 	var chart = svgNode('svg', { viewBox: '0 0 800 252', role: 'img', 'aria-label': _('%s: HTTP delay in milliseconds').format(label) }, [
-		svgNode('title', {}, [ _('%s — HTTP delay, ms. Failures are at −10; unknown and missing probes break the line.').format(label) ]),
+		svgNode('title', {}, [ _('%s — logarithmic HTTP delay between observed minimum and maximum, ms. Failures are at −10; unknown and missing probes break the line.').format(label) ]),
 		svgNode('text', { x: g.left, y: 15, 'class': 'om-axis-title' }, [ _('HTTP, ms') ]),
 		svgNode('rect', { x: g.left, y: 194, width: g.right - g.left, height: 28, 'class': 'om-error-band' })
 	]);
 	g.ticks.forEach(function(value) {
 		var y = g.y(value);
 		chart.appendChild(svgNode('line', { x1: g.left, x2: g.right, y1: y, y2: y, 'class': 'om-grid' }));
-		chart.appendChild(svgNode('text', { x: g.left - 12, y: y + 4, 'text-anchor': 'end', 'class': 'om-axis' }, [ tickLabel(value) ]));
+		chart.appendChild(svgNode('text', { x: g.left - 12, y: y + 4, 'text-anchor': 'end', 'class': 'om-axis' }, [ tickLabel(value, g.tickPrecision) ]));
 	});
 	chart.appendChild(svgNode('text', { x: g.left - 12, y: g.failure + 4, 'text-anchor': 'end', 'class': 'om-axis om-error-label' }, [ '−10' ]));
 	chart.appendChild(svgNode('path', { d: 'M ' + (g.left - 8) + ' 186 l 5 -3 m -5 7 l 5 -3', 'class': 'om-axis-break' }));
@@ -235,7 +265,7 @@ function renderChart(samples, from, to, interval, label) {
 			chart.appendChild(svgNode('polyline', { points: path.map(function(point) { return point.x + ',' + point.y; }).join(' '), 'class': 'om-trace' }));
 	});
 	g.points.forEach(function(point) {
-		chart.appendChild(svgNode('circle', { cx: point.x, cy: point.y, r: point.sample[1] === 1 ? 3.6 : 4.5, 'class': point.sample[1] === 0 ? 'om-failed-point' : point.sample[1] === -2 ? 'om-upstream-point' : point.outlier ? 'om-outlier-point' : 'om-ok-point' }, [ svgNode('title', {}, [ sampleLabel(point.sample, point.outlier) ]) ]));
+		chart.appendChild(svgNode('circle', { cx: point.x, cy: point.y, r: point.sample[1] === 1 ? 3.6 : 4.5, 'class': point.sample[1] === 0 ? 'om-failed-point' : point.sample[1] === -2 ? 'om-upstream-point' : point.extreme ? 'om-extreme-point' : point.outlier ? 'om-outlier-point' : 'om-ok-point' }, [ svgNode('title', {}, [ sampleLabel(point.sample, point.extreme ? 3 : point.outlier ? 1 : 0) ]) ]));
 	});
 	var cursor = svgNode('line', { x1: 0, x2: 0, y1: g.top, y2: 222, 'class': 'om-cursor', visibility: 'hidden' });
 	chart.appendChild(cursor);
@@ -245,7 +275,7 @@ function renderChart(samples, from, to, interval, label) {
 		cursor.setAttribute('x1', g.x(sample[0]));
 		cursor.setAttribute('x2', g.x(sample[0]));
 		cursor.setAttribute('visibility', 'visible');
-		hint.textContent = sampleLabel(sample, sample[1] === 1 && sample[2] > g.outlierThreshold);
+		hint.textContent = sampleLabel(sample, sample[1] === 1 && sample[2] > g.extremeThreshold ? 3 : sample[1] === 1 && sample[2] > g.outlierThreshold ? 1 : 0);
 	}
 	chart.setAttribute('tabindex', samples.length ? '0' : '-1');
 	chart.setAttribute('aria-description', _('Use the left and right arrow keys to select a probe.'));
@@ -296,7 +326,7 @@ function renderKey(key, data, now, hours, unavailable) {
 		state.replace ? E('p', { 'class': 'om-advice' }, _('Consecutive failures: %s. Check the connection and consider replacing the key. Failures do not prove that the key has expired.').format(key.consecutive_failures)) : '',
 		E('div', { 'class': 'om-metrics' }, [
 			metric(_('Successful probes'), percentage(stats.availability), _('%s of %s known results').format(stats.success, measured)),
-			metric(_('Median HTTP delay'), stats.median === null ? '—' : _('%s ms').format(number(stats.median)), _('successful probes in this period')),
+			metric(_('Median HTTP delay'), stats.median === null ? '—' : _('%s ± %s ms').format(number(stats.median), number(stats.stddev)), _('median ± population SD of successful probes')),
 			metric(_('VPN failures'), String(stats.failed), _('unknown results: %s').format(stats.unknown))
 		]),
 		renderChart(samples, now - hours * 3600, now, interval, label),
@@ -436,8 +466,8 @@ return view.extend({
 			E('div', { 'class': 'om-header' }, [ E('div', {}, [ E('h2', {}, _('Outbound Monitor')), E('p', { 'class': 'om-muted' }, _('HTTP probe history for each key')) ]), E('div', { 'class': 'om-controls' }, [ E('label', {}, [ _('Period'), ' ', selector ]), E('span', { 'class': 'om-export-label' }, _('Export:')), this.exportJson, this.exportCsv ]) ]),
 			this.updaterNode,
 			this.statusNode,
-			E('div', { 'class': 'om-legend' }, [ E('span', { 'class': 'om-legend-success' }, '● ' + _('HTTP delay, ms')), E('span', { 'class': 'om-legend-outlier' }, '● ' + _('Above mean + 1 SD')), E('span', { 'class': 'om-legend-failure' }, '● ' + _('VPN failure: −10')), E('span', { 'class': 'om-upstream-text' }, '● ' + _('Suspected external failure: −10')), E('span', {}, _('Gaps mean unknown or missing probes')) ]),
-			E('p', { 'class': 'om-footnote' }, _('The delay scale is logarithmic (including zero). Yellow marks successful probes strictly above the mean plus one population SD for this key in the selected period. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period.')),
+			E('div', { 'class': 'om-legend' }, [ E('span', { 'class': 'om-legend-success' }, '● ' + _('HTTP delay, ms')), E('span', { 'class': 'om-legend-outlier' }, '● ' + _('Above mean + 1 SD')), E('span', { 'class': 'om-legend-extreme' }, '● ' + _('Above mean + 3 SD')), E('span', { 'class': 'om-legend-failure' }, '● ' + _('VPN failure: −10')), E('span', { 'class': 'om-upstream-text' }, '● ' + _('Suspected external failure: −10')), E('span', {}, _('Gaps mean unknown or missing probes')) ]),
+			E('p', { 'class': 'om-footnote' }, _('The logarithmic delay scale spans the successful minimum and maximum for each key in the selected period, with a small margin. Yellow marks successes strictly above mean + 1 population SD; orange marks successes strictly above mean + 3 population SD. −10 uses a separate failure band. Times use the browser time zone. Exports contain the received data for the selected period.')),
 			E('p', { 'class': 'om-footnote' }, _('Blue failures suggest an external network or ISP issue; the cause is not confirmed.')),
 			this.contentNode
 		]);

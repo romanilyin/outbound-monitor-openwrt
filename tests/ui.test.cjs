@@ -124,28 +124,60 @@ test('chart never joins successes across unknowns, failures, or missed intervals
   assert.equal(chart.points.find(point => point.sample[1] === 0).y, chart.y(-10));
 });
 
-test('zero, empty, and huge delay scales stay finite with distinct failure band', () => {
+test('zero, empty, single-value, and huge delay scales stay finite with a separate failure band', () => {
   for (const delay of [0, 1, 60000, 1e100, Number.MAX_VALUE]) {
     const chart = helpers.chartGeometry([[100, 1, delay]], 0, 200, 300);
     assert.ok(Number.isFinite(chart.maximum));
+    assert.equal(chart.minimum, delay);
+    assert.equal(chart.maximum, delay);
     assert.ok(Number.isFinite(chart.points[0].y));
     assert.ok(chart.points[0].y >= chart.top);
     assert.ok(chart.points[0].y <= chart.zero);
     assert.ok(chart.y(-10) - chart.y(0) >= 25);
     assert.ok(helpers.tickLabel(chart.maximum).length < 14);
-    assert.equal(chart.ticks[0], 0);
+    assert.equal(chart.ticks[0], delay);
     assert.equal(chart.ticks[chart.ticks.length - 1], chart.maximum);
     assert.ok(chart.ticks.every(tick => Number.isFinite(tick) && Number.isFinite(chart.y(tick))));
     assert.ok(chart.ticks.every((tick, index) => !index || tick > chart.ticks[index - 1]));
   }
-  assert.ok(Number.isFinite(helpers.chartGeometry([], 0, 0, 300).x(0)));
+  const empty = helpers.chartGeometry([[100, 0, null], [200, -2, null]], 0, 300, 300);
+  assert.ok(Number.isFinite(empty.x(0)));
+  assert.ok(empty.ticks.every(tick => Number.isFinite(empty.y(tick))));
+  assert.ok(empty.points.every(point => point.y === empty.failure));
+  const adjacent = helpers.chartGeometry([[100, 1, 1e300], [200, 1, 1e300 + 1e284]], 0, 300, 300);
+  assert.ok(adjacent.points.every(point => Number.isFinite(point.y) && point.y >= adjacent.top && point.y <= adjacent.zero));
+  assert.ok(adjacent.points[0].y > adjacent.points[1].y, 'nearby extreme values remain visually distinct');
+  assert.equal(new Set(adjacent.ticks.map(tick => helpers.tickLabel(tick, adjacent.tickPrecision))).size, adjacent.ticks.length);
 });
 
-test('one logarithmic delay axis compresses decades and retains zero and failure ticks', () => {
+test('logarithmic delay axis spans the observed positive minimum and maximum with a small margin', () => {
+  const narrow = helpers.chartGeometry([[300, 1, 138], [600, 1, 166], [900, 1, 2044]], 0, 1200, 300);
+  assert.equal(narrow.minimum, 138);
+  assert.equal(narrow.maximum, 2044);
+  assert.equal(narrow.ticks[0], 138);
+  assert.equal(narrow.ticks.at(-1), 2044);
+  assert.ok(narrow.y(138) < narrow.zero && narrow.y(138) > narrow.zero - 20, 'minimum has a small lower margin');
+  assert.ok(narrow.y(2044) > narrow.top && narrow.y(2044) < narrow.top + 20, 'maximum has a small upper margin');
+  assert.ok(narrow.points.every(point => point.y >= narrow.top && point.y <= narrow.zero));
+  assert.ok(narrow.ticks.every((tick, index) => !index || narrow.y(narrow.ticks[index - 1]) - narrow.y(tick) >= 28));
+  assert.equal(new Set(narrow.ticks.map(tick => helpers.tickLabel(tick, narrow.tickPrecision))).size, narrow.ticks.length);
+  const close = helpers.chartGeometry([[300, 1, 100], [600, 1, 100.1]], 0, 900, 300);
+  assert.ok(close.y(100) - close.y(100.1) > 120, 'a narrow observed range fills the plot');
+  assert.equal(close.ticks[0], 100);
+  assert.equal(close.ticks.at(-1), 100.1);
+  assert.equal(new Set(close.ticks.map(tick => helpers.tickLabel(tick, close.tickPrecision))).size, close.ticks.length);
+  const later = helpers.chartGeometry([[600, 1, 166], [900, 1, 2044]], 600, 1200, 300);
+  assert.equal(later.minimum, 166);
+  assert.ok(later.y(166) > later.top, 'range selection recomputes the scale');
+  assert.equal(narrow.y(-10), narrow.failure);
+  assert.ok(narrow.y(-10) > narrow.zero);
+});
+
+test('logarithmic zero-inclusive axis compresses decades without moving failures', () => {
   const chart = helpers.chartGeometry([0, 1, 10, 100, 1000].map((delay, index) => [index * 300, 1, delay]), 0, 1200, 300);
   assert.deepEqual(plain(chart.ticks), [0, 10, 100, 1000]);
   assert.equal(chart.y(0), chart.zero);
-  assert.equal(chart.y(1000), chart.top);
+  assert.ok(chart.y(1000) > chart.top && chart.y(1000) < chart.top + 10);
   const lowDecade = chart.y(10) - chart.y(100);
   const highDecade = chart.y(100) - chart.y(1000);
   assert.ok(Math.abs(lowDecade - highDecade) < 3);
@@ -164,6 +196,20 @@ test('yellow outliers use only successes in the selected period and a strict mea
   const equal = helpers.chartGeometry([[300, 1, 0], [600, 1, 2]], 0, 900, 300);
   assert.equal(equal.outlierThreshold, 2);
   assert.equal(equal.points[1].outlier, false);
+});
+
+test('orange points exceed mean plus three population SD with priority over yellow', () => {
+  const history = [[0, 1, 10000], ...Array.from({ length: 30 }, (_, i) => [(i + 1) * 300, 1, 10]), [9300, 1, 20], [9600, 1, 20], [9900, 1, 20], [10200, 1, 50], [10500, 0, null], [10800, -2, null]];
+  const selected = helpers.samplesInRange(history, 300, 10800);
+  const chart = helpers.chartGeometry(selected, 300, 10800, 300);
+  assert.ok(20 > chart.outlierThreshold && 20 <= chart.extremeThreshold);
+  assert.ok(50 > chart.extremeThreshold);
+  assert.equal(chart.points.find(point => point.sample[2] === 20).outlier, true);
+  assert.equal(chart.points.find(point => point.sample[2] === 20).extreme, false);
+  assert.equal(chart.points.find(point => point.sample[2] === 50).extreme, true);
+  assert.match(helpers.sampleLabel([10200, 1, 50], 3), /Above mean \+ 3 SD/);
+  assert.doesNotMatch(helpers.sampleLabel([10200, 1, 50], 3), /Above mean \+ 1 SD/);
+  assert.equal(helpers.chartGeometry([[300, 1, 0], [600, 1, 2]], 0, 900, 300).points[1].extreme, false);
 });
 
 test('external failures stay distinct from unknown gaps and are plotted at minus ten', () => {
@@ -215,7 +261,7 @@ function descendants(node) {
 }
 
 const idleUpdater = { current: '2026-9-23-1', latest: null, checked_at: null, available: false, running: false, stage: 'idle', error: null, release_url: null };
-function makeView(handler, updaterHandler = () => Promise.resolve(idleUpdater)) {
+function makeView(handler, updaterHandler = () => Promise.resolve(idleUpdater), lang = 'en-US') {
   const polls = [];
   const reloads = [];
   const context = {
@@ -233,7 +279,7 @@ function makeView(handler, updaterHandler = () => Promise.resolve(idleUpdater)) 
     poll: { add: (callback, interval) => polls.push({ callback, interval }) },
     E: (tag, attrs, children) => new Node(tag, attrs, children),
     L: { resource: path => '/luci-static/resources/' + path },
-    document: { documentElement: { lang: 'en-US' }, createElementNS: (_, tag) => new Node(tag), createTextNode: value => value },
+    document: { documentElement: { lang }, createElementNS: (_, tag) => new Node(tag), createTextNode: value => value },
     window: { location: { reload: () => reloads.push(true) } }
   };
   return { view: vm.runInNewContext(formatPrelude + '(function() {\n' + source + '\n})()', context), polls, reloads };
@@ -273,6 +319,37 @@ test('interface-bound WARP and standalone keys display their own endpoints with 
   assert.equal(stats.variance, 100);
   assert.equal(stats.failurePercent, 0);
   assert.deepEqual(warp.samples, [[700, 1, 20], [1000, 1, 40]]);
+});
+
+test('median card shows population SD with page-locale formatting and chart legend explains orange', () => {
+  const data = { version: 1, now: 1000, interval: 300, keys: [{ id: 'key', label: 'test', active: true, current: 1, last_checked: 1000, samples: [[700, 1, 161.4], [1000, 1, 170.6]] }] };
+  const { view } = makeView(() => Promise.resolve({}), undefined, 'ru-RU');
+  const root = view.render({ data });
+  const median = descendants(view.contentNode).find(node => node.attributes.class === 'om-metric' && /Median HTTP delay/.test(node.textContent));
+  assert.match(median.textContent, /166 ± 4,6 ms/);
+  assert.match(median.textContent, /median ± population SD of successful probes/);
+  assert.match(root.textContent, /Above mean \+ 3 SD/);
+  assert.match(root.textContent, /small margin/);
+  const chart = descendants(root).find(node => node.tag === 'svg');
+  assert.match(chart.textContent, /observed minimum and maximum/);
+});
+
+test('rendered chart keeps yellow and orange successes above the red failure band', () => {
+  const successes = [...Array.from({ length: 30 }, (_, i) => [(i + 1) * 300, 1, 10]), [9300, 1, 20], [9600, 1, 20], [9900, 1, 20], [10200, 1, 50]];
+  const data = { version: 1, now: 10800, interval: 300, keys: [{ id: 'key', active: true, current: -2, last_checked: 10800, samples: [...successes, [10500, 0, null], [10800, -2, null]] }] };
+  const { view } = makeView(() => Promise.resolve({}));
+  view.render({ data });
+  const chart = descendants(view.contentNode).find(node => node.tag === 'svg');
+  const nodes = descendants(chart);
+  const circles = nodes.filter(node => node.tag === 'circle');
+  assert.equal(circles.filter(node => node.attributes.class === 'om-outlier-point').length, 3);
+  assert.equal(circles.filter(node => node.attributes.class === 'om-extreme-point').length, 1);
+  assert.equal(circles.filter(node => node.attributes.class === 'om-failed-point').length, 1);
+  assert.equal(circles.filter(node => node.attributes.class === 'om-upstream-point').length, 1);
+  const band = nodes.find(node => node.attributes.class === 'om-error-band');
+  assert.equal(circles.find(node => node.attributes.class === 'om-failed-point').attributes.cy, 208);
+  assert.ok(band.attributes.y < 208 && band.attributes.y + band.attributes.height > 208);
+  assert.match(circles.find(node => node.attributes.class === 'om-extreme-point').textContent, /Above mean \+ 3 SD/);
 });
 
 test('range races cannot overwrite a newer response and RPC failure is visible', async () => {
